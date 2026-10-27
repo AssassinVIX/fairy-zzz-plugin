@@ -45,12 +45,17 @@ plugin_manager install_bundle  target=<克隆下来的目录>
 
 **方式二：手动合并 patch**
 
-把本仓库根目录 `cordis.patch.yml` 里的 `insert` 段合并进你的 profile patch（Windows 一般是 `%USERPROFILE%\.dsh\profiles\<profile>\cordis.patch.yml`）：
+把本仓库根目录 `cordis.patch.yml` 里的**两个** `insert` 段一起合并进你的 profile patch（Windows 一般是 `%USERPROFILE%\.dsh\profiles\<profile>\cordis.patch.yml`）：
 
 ```yaml
 - insert:
     - id: fairy-zzz-skin
       name: 'dsh-fairy-zzz'
+
+- insert:
+    - id: preset-fairy
+      name: '@deepseek-ai/dsh-agent-preset'
+      config: { ... }   # 完整内容见仓库里的 cordis.patch.yml
 ```
 
 装好后整页刷新一次。皮肤只做「插入一行 + 宿主注册两条 HTTP 路由」，不修改宿主的任何文件。
@@ -69,14 +74,15 @@ powershell -ExecutionPolicy Bypass -File .\install-windows.ps1 -Uninstall  # 卸
 > 并把插件目录从 `node_modules\@local\dsh-fairy-zzz` 换到 `node_modules\dsh-fairy-zzz`。
 
 
-## 「Fairy 模式」预设（可选）
+## 「Fairy 模式」预设（随插件安装）
 
-`presets/fairy-mode.patch.yml` 是一个**只装人设**的 agent 预设：预设里只有 `@deepseek-ai/dsh-persona` 一项，
-不带任何工具、上下文或其它插件——工具集沿用你当前 DSH 的配置，预设只负责 Fairy 的语气与身份。
+插件自带的 `cordis.patch.yml` 里除了皮肤本体，还插入了 `preset-fairy`——**只装人设**的 agent 预设：
+预设里只有 `@deepseek-ai/dsh-persona` 一项，不带任何工具、上下文或其它插件，工具集沿用你当前 DSH 的配置，
+预设只负责 Fairy 的语气与身份。装好插件、重启 DSH 后，新建会话的模式选择器里就会多出「Fairy 模式」。
 
-用法：把该文件内容追加到你的 profile patch（Windows 一般是
-`%USERPROFILE%\.dsh\profiles\<profile>\cordis.patch.yml`），重启 DSH，新建会话的模式选择器里就会多出「Fairy 模式」。
+`presets/fairy-mode.patch.yml` 是同一份内容的**独立版**，留给「只想用人设、不装皮肤」的人单独合并进 profile patch。
 
+> 如果你以前手动往 profile patch 里追加过 `preset-fairy`，请把旧的那段删掉，否则会出现两份同名预设。
 > 皮肤本体与这个预设互不依赖：不装预设也有皮肤，不装皮肤也能用预设。
 
 ## 设置（设置 → Fairy）
@@ -162,11 +168,11 @@ powershell -ExecutionPolicy Bypass -File .\install-windows.ps1 -Uninstall  # 卸
 ## 目录结构
 
 ```text
-cordis.patch.yml     # 一行 insert（皮肤本体）
+cordis.patch.yml     # 两个 insert：皮肤本体 + 「Fairy 模式」预设
 client.js            # 客户端：主题、开机/问好/眼徽、设置面板、语音动作
 index.js             # 宿主：静态资源、TTS 队列与缓存、心情、引擎托管
 assets/              # boot.mp4 / poster.jpg / hero.png / voice/greet-*.wav
-presets/             # 可选的「Fairy 模式」agent 预设
+presets/             # 「Fairy 模式」预设的独立版（不装皮肤时单独用）
 screenshots/         # 列表用截图
 install-windows.ps1  # Windows 安装/卸载脚本
 ```
@@ -228,12 +234,17 @@ plugin_manager install_bundle  target=<path to the cloned folder>
 
 **Option 2 — merge the patch by hand**
 
-Merge the `insert` block from `cordis.patch.yml` into your profile patch (on Windows usually `%USERPROFILE%\.dsh\profiles\<profile>\cordis.patch.yml`):
+Merge **both** `insert` blocks from `cordis.patch.yml` into your profile patch (on Windows usually `%USERPROFILE%\.dsh\profiles\<profile>\cordis.patch.yml`):
 
 ```yaml
 - insert:
     - id: fairy-zzz-skin
       name: 'dsh-fairy-zzz'
+
+- insert:
+    - id: preset-fairy
+      name: '@deepseek-ai/dsh-agent-preset'
+      config: { ... }   # full content lives in cordis.patch.yml
 ```
 
 Reload the whole page once installed. The skin only inserts one line and registers two HTTP routes on the host; it does not modify any file that ships with DSH.
@@ -249,7 +260,7 @@ The script finds your profile, copies the plugin into `node_modules\dsh-fairy-zz
 
 > **Upgrading from older versions**: from 1.0.0 the package name changed from `@local/dsh-fairy-zzz` to `dsh-fairy-zzz` (so it can be listed and installed from npm). Change `name: '@local/dsh-fairy-zzz'` to `name: 'dsh-fairy-zzz'` in your profile patch, and move the plugin directory from `node_modules\@local\dsh-fairy-zzz` to `node_modules\dsh-fairy-zzz`.
 
-> `presets/fairy-mode.patch.yml` is an **optional** "Fairy mode" agent preset (snarky AI tone, addresses you as "Master"). It depends on a lot of `@deepseek-ai/dsh-*` plugins whose tool sets differ between DSH versions, so it is not enabled by default; to use it, append it to your profile patch as described at the top of the file and make sure every plugin it lists exists in your version.
+> The plugin's own `cordis.patch.yml` also inserts `preset-fairy`, a **persona-only** "Fairy mode" agent preset (snarky AI tone, addresses you as "Master"). It only contributes the persona — tools and context plugins come from your DSH configuration, so it keeps working across DSH versions. After installing the plugin and restarting DSH, "Fairy 模式" shows up in the new-session mode picker. `presets/fairy-mode.patch.yml` is the standalone copy for people who want the persona without the skin; if you previously added `preset-fairy` by hand, remove the old block to avoid two presets with the same name.
 
 ## Settings (Settings → Fairy)
 
@@ -334,11 +345,11 @@ The images in `screenshots/` are not remote links: the boot frame is taken from 
 ## Repository layout
 
 ```text
-cordis.patch.yml     # one insert line (the skin itself)
+cordis.patch.yml     # two inserts: the skin itself + the "Fairy mode" preset
 client.js            # client: theme, boot/greeting/badge, settings panel, voice actions
 index.js             # host: static assets, TTS queue and cache, mood, engine supervision
 assets/              # boot.mp4 / poster.jpg / hero.png / voice/greet-*.wav
-presets/             # optional "Fairy mode" agent preset
+presets/             # standalone copy of the "Fairy mode" preset (persona only, no skin)
 screenshots/         # screenshots used above
 install-windows.ps1  # Windows install/uninstall script
 ```

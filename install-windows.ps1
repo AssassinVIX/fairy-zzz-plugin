@@ -128,22 +128,70 @@ foreach ($junk in @('cache', 'diag', 'node_modules', '.git', 'tests')) {
 }
 Write-Ok "插件已复制到 $destDir"
 
+# 如果这个 profile 已经按「bundle」方式装了本插件，插入段由插件自带的 cordis.patch.yml 提供，
+# 这里就不要再往 profile patch 里写一遍，否则会出现两份 fairy-zzz-skin / preset-fairy。
+$viaBundle = $false
+$pkgFile = Join-Path $ProfilePath 'package.json'
+if (Test-Path $pkgFile) {
+  try {
+    $pkg = Get-Content $pkgFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($pkg.dsh -and $pkg.dsh.profile -and $pkg.dsh.profile.bundles -contains $pkgName) { $viaBundle = $true }
+  } catch { $viaBundle = $false }
+}
+
 # ---------- 4. 打补丁 ----------
 $raw = [System.IO.File]::ReadAllText($patchFile)
 $nl = if ($raw -match "`r`n") { "`r`n" } else { "`n" }
 $changed = $false
 
-if ($raw -notmatch 'fairy-zzz-skin') {
-  $bundlePatch = Join-Path $srcDir 'cordis.patch.yml'
-  if (-not (Test-Path $bundlePatch)) { throw '安装包不完整：缺少 cordis.patch.yml' }
-  $body = [System.IO.File]::ReadAllText($bundlePatch)
-  $bodyLines = $body -split "`r?`n" | Where-Object { $_ -notmatch '^\s*#' }
-  $bodyText = ($bodyLines -join $nl).Trim()
-  if ($raw.Trim() -eq '') { $raw = $bodyText + $nl } else { $raw = $raw.TrimEnd() + $nl + $nl + $bodyText + $nl }
-  $changed = $true
-  Write-Ok "cordis.patch.yml 已加入 fairy-zzz-skin"
+# 空的 patch 也可能是 "[]"（空数组写法），统一视作空文件再追加
+if ($raw.Trim() -eq '[]') { $raw = ''; $changed = $true }
+
+$bundlePatch = Join-Path $srcDir 'cordis.patch.yml'
+if (-not (Test-Path $bundlePatch)) { throw '安装包不完整：缺少 cordis.patch.yml' }
+
+# 把插件自带的 patch 按 "- insert:" 切成独立块（丢掉注释行），后面缺哪块补哪块：
+#   fairy-zzz-skin —— 皮肤本体
+#   preset-fairy   —— 「Fairy 模式」agent 预设
+$bundleBlocks = New-Object System.Collections.Generic.List[object]
+$curBlock = $null
+foreach ($bl in ([System.IO.File]::ReadAllText($bundlePatch) -split "`r?`n")) {
+  if ($bl -match '^\s*#') { continue }
+  if ($bl -match '^- insert:\s*$') {
+    if ($curBlock) { $bundleBlocks.Add($curBlock) }
+    $curBlock = New-Object System.Collections.Generic.List[string]
+    $curBlock.Add($bl)
+  } elseif ($curBlock -and $bl.Trim() -ne '') {
+    $curBlock.Add($bl)
+  }
+}
+if ($curBlock) { $bundleBlocks.Add($curBlock) }
+
+$wanted = @(
+  @{ Key = 'fairy-zzz-skin'; Label = '皮肤' },
+  @{ Key = 'preset-fairy';   Label = 'Fairy 模式预设' }
+)
+$added = New-Object System.Collections.Generic.List[string]
+$chunks = New-Object System.Collections.Generic.List[string]
+if ($viaBundle) {
+  Write-Step "该 profile 已按 bundle 方式安装，皮肤与「Fairy 模式」预设由插件自带 patch 插入，跳过手写 insert"
 } else {
-  Write-Step "cordis.patch.yml 里已有 Fairy 条目，跳过"
+  foreach ($w in $wanted) {
+    if ($raw -match [regex]::Escape($w.Key)) {
+      Write-Step "cordis.patch.yml 里已有 $($w.Key)，跳过"
+      continue
+    }
+    $pick = $bundleBlocks | Where-Object { ($_ -join "`n") -match [regex]::Escape($w.Key) } | Select-Object -First 1
+    if (-not $pick) { throw "安装包里没有 $($w.Key) 的 insert 段" }
+    $chunks.Add(($pick -join $nl))
+    $added.Add($w.Label)
+  }
+}
+if ($chunks.Count -gt 0) {
+  $add = $chunks -join ($nl + $nl)
+  if ($raw.Trim() -eq '') { $raw = $add + $nl } else { $raw = $raw.TrimEnd() + $nl + $nl + $add + $nl }
+  $changed = $true
+  Write-Ok ("cordis.patch.yml 已加入 " + ($added -join ' + '))
 }
 
 if ($raw -match 'dsh-client-ui-theme' -and $raw -match 'preference:\s*light') {
