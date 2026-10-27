@@ -1192,11 +1192,34 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
       useEffect(() => {
         const video = videoRef.current
         if (!video) return
-        video.muted = true
+        let disposed = false
+        video.volume = 0.9
+        // 先试着带声音播放；浏览器拦住自动播放（NotAllowedError）时退回静音，
+        // 等主人第一次点按/敲键再把声音打开，保证开机动画无论如何先放起来。
+        const unlock = () => {
+          if (disposed || !video.muted) return
+          video.muted = false
+          const p = video.play()
+          if (p && p.catch) p.catch(() => { video.muted = true })
+        }
+        video.muted = false
         const playing = video.play()
-        if (playing && playing.catch) playing.catch(() => {})
+        if (playing && playing.catch) {
+          playing.catch(() => {
+            video.muted = true
+            const retry = video.play()
+            if (retry && retry.catch) retry.catch(() => {})
+          })
+        }
+        window.addEventListener('pointerdown', unlock)
+        window.addEventListener('keydown', unlock)
         const failsafe = setTimeout(finish, 18_000)
-        return () => clearTimeout(failsafe)
+        return () => {
+          disposed = true
+          clearTimeout(failsafe)
+          window.removeEventListener('pointerdown', unlock)
+          window.removeEventListener('keydown', unlock)
+        }
       }, [finish])
 
       const onTime = () => {
@@ -1214,7 +1237,6 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
           ref: videoRef,
           src: '/fairy-zzz/assets/boot.mp4',
           poster: '/fairy-zzz/assets/poster.jpg',
-          muted: true,
           playsInline: true,
           preload: 'auto',
           onEnded: finish,
