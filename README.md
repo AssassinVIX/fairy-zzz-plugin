@@ -15,7 +15,7 @@
 
 - **开机动画**：整屏播放 H.D.D 启动片，视频按 `object-fit: contain` 完整显示，多余区域由同帧的模糊铺底填充，任何窗口比例都不会出现硬黑边。启动片自带音轨：页面允许自动播放时直接带声音放，被浏览器拦下就先静音播放，等你第一次点按/敲键再把声音打开。
 - **居中问好**：动画结束后淡入 H.D.D 眼徽（深蓝环 / 白盘 / 蓝瞳 / 高光点），背后是蓝光晕图，`HOLLOW DEEP DIVE SYSTEM` 标题带镜面倒影，下方按当前时段（凌晨/上午/中午/下午/傍晚/深夜）播一句问候并同步播放预录音频。
-- **收成眼徽**：问候结束约 1.9s 后眼徽飞到会话区左缘的中线（侧栏右侧的蓝色圈内）常驻，光晕图淡出；眼徽本身只是状态指示，点击不再弹面板。
+- **收成眼徽**：问候结束约 1.9s 后眼徽飞到会话区左缘的中线（侧栏右侧的蓝色圈内）常驻，光晕图淡出；眼徽本身只是状态指示，点击不再弹面板。默认可以按住拖到屏幕任意位置，坐标写进 `localStorage`，刷新后仍在原位；不想要拖动就去 `设置 → Fairy` 关掉「拖动眼徽」，或用「眼标复位」回到会话区左缘。
 - **状态动效**（复刻参考实现 Fairy-DSH 的几何与时长）：
   - `idle` 呼吸 + 缓慢自转 + 扫描光带；
   - `thinking/working` 上眼睑压到半闭并轻微呼吸；
@@ -90,11 +90,13 @@ powershell -ExecutionPolicy Bypass -File .\install-windows.ps1 -Uninstall  # 卸
 | 控件 | 说明 |
 | --- | --- |
 | 自动朗读回复 | 助手回答完成后自动念出来；关掉也可以单独点消息旁的朗读按钮 |
+| 拖动眼徽 | 默认开启：按住会话区左缘的眼标拖到屏幕任意位置，位置记在浏览器里；关掉则锁回会话区左缘 |
 | 语音引擎 | 引擎状态灯：绿=就绪，黄=启动中，灰=未运行 |
 | 语音引擎目录 | 输入引擎目录 → `保存`（写入 `<插件目录>/voice-home.txt`）、`检测`（只校验不保存）、`清除`（回到自动探测） |
 | 启动引擎 / 停止引擎 | 由宿主进程托管引擎的启停 |
 | 刷新状态 | 立即重新探测一次 |
 | 试听问候 / 重播开机动画 | 重放最新问候音频 / 重新走一遍开机 → 问好 → 收成眼徽 |
+| 眼标复位 | 忘掉拖动记下的坐标，把眼标放回会话区左缘的默认锚点 |
 | 测试语音 / 停止 | 合成一句测试语音 / 停止当前播放 |
 
 ## 语音引擎（可选）
@@ -204,7 +206,7 @@ It turns the DSH web interface into Fairy's H.D.D terminal: a full-screen boot a
 
 - **Boot animation** — the H.D.D startup clip fills the screen with `object-fit: contain`, and the leftover area is filled with a blurred copy of the same frame, so no hard black bars appear at any window ratio. The clip carries its own audio track: it plays with sound when the page allows autoplay, otherwise it starts muted and unmutes on your first click or keypress.
 - **Centered greeting** — when the clip ends, the H.D.D eye badge (deep-blue ring / white disc / blue iris / highlight dot) fades in over a blue glow, with a mirrored `HOLLOW DEEP DIVE SYSTEM` title and a time-of-day greeting (small hours / morning / noon / afternoon / evening / late night) played together with a matching pre-recorded audio clip.
-- **Badge hand-off** — about 1.9 s after the greeting the badge flies to the middle of the left edge of the conversation area (inside the blue ring next to the sidebar) and stays there while the glow fades out. The badge is a status indicator only; clicking it no longer opens a panel.
+- **Badge hand-off** — about 1.9 s after the greeting the badge flies to the middle of the left edge of the conversation area (inside the blue ring next to the sidebar) and stays there while the glow fades out. The badge is a status indicator only; clicking it no longer opens a panel. It is draggable by default: hold it and move it anywhere on screen — the position is stored in `localStorage` and survives a reload. Turn "Draggable badge" off under *Settings → Fairy*, or use "Reset badge" to snap it back to the left edge of the conversation area.
 - **State animations** (geometry and timings replicate the reference implementation, Fairy-DSH):
   - `idle` — breathing, slow rotation, a sweeping scan light;
   - `thinking` / `working` — the upper eyelid drops to half-closed and breathes slightly;
@@ -267,11 +269,13 @@ The script finds your profile, copies the plugin into `node_modules\dsh-fairy-zz
 | Control | What it does |
 | --- | --- |
 | Read replies aloud | Speaks each assistant answer when it finishes; with it off you can still use the speaker button next to a message |
+| Draggable badge | On by default: hold the eye badge at the left edge of the conversation area and drag it anywhere on screen; the position is remembered. Off pins it back to the conversation area's left edge |
 | Voice engine | Engine status light: green = ready, yellow = starting, grey = not running |
 | Engine directory | Type a directory → `Save` (writes `<plugin dir>/voice-home.txt`), `Detect` (validate without saving), `Clear` (back to auto-detection) |
 | Start / Stop engine | Host-managed engine start and stop |
 | Refresh status | Re-probe immediately |
 | Play greeting / Replay boot | Replay the latest greeting audio / run the boot → greeting → badge sequence again |
+| Reset badge | Forget the remembered drag position and snap the badge back to the conversation area's left edge |
 | Test voice / Stop | Synthesize a test line / stop current playback |
 
 ## Voice engine (optional)

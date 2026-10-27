@@ -9,6 +9,8 @@ window.__ModuleLoader__.load({
     const PKG = 'dsh-fairy-zzz'
     const VOICE_KEY = 'fairy.zzz.voice'
     const SEEN_KEY = 'fairy.zzz.seen'
+    const DRAG_KEY = 'fairy.zzz.drag'
+    const POS_KEY = 'fairy.zzz.dock-pos'
     const greetSlot = () => {
       const hh = new Date().getHours()
       if (hh >= 5 && hh < 11) return 'morning'
@@ -480,6 +482,11 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
 .fz3-layer[data-phase="dock"] .fz3-core{
   left:var(--fz3-dock-x);top:var(--fz3-dock-y);width:var(--fz3-dock-size);opacity:1;pointer-events:none;
 }
+/* 可拖拽眼徽：开关在「设置 → Fairy」，关掉就锁死在会话区左缘 */
+.fz3-layer[data-drag="1"][data-phase="dock"] .fz3-core{pointer-events:auto;cursor:grab;touch-action:none}
+.fz3-layer[data-drag="1"][data-phase="dock"] .fz3-core:active{cursor:grabbing}
+.fz3-layer[data-dragging="1"][data-phase="dock"] .fz3-core{transition:none;cursor:grabbing}
+.fz3-layer[data-dragging="1"][data-phase="dock"] .fz3-core svg{transition:none;transform:scale(1.05)}
 .fz3-layer[data-phase="boot"] .fz3-core{opacity:0}
 .fz3-core svg{display:block;width:100%;height:100%;filter:none}
 .fz3-eye-glyph{transition:transform .28s ease}
@@ -963,6 +970,21 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
       const [voiceHome, setVoiceHome] = useState('')
       const [voiceInfo, setVoiceInfo] = useState(null)
       const [voiceHomeBusy, setVoiceHomeBusy] = useState('')
+
+      /* 眼徽拖拽开关：写 localStorage 后广播事件，让皮肤图层立刻切换指针行为 */
+      const [dragPref, setDragPref] = useState(() => readBool(DRAG_KEY, true))
+      const [hasCustomPos, setHasCustomPos] = useState(() => !!readStored(POS_KEY, null))
+      const toggleDrag = () => {
+        const next = !dragPref
+        writeStored(DRAG_KEY, next)
+        setDragPref(next)
+        try { window.dispatchEvent(new CustomEvent('fz3:drag-pref')) } catch {}
+      }
+      const resetDockPos = () => {
+        try { localStorage.removeItem(POS_KEY) } catch {}
+        setHasCustomPos(false)
+        try { window.dispatchEvent(new CustomEvent('fz3:dock-reset')) } catch {}
+      }
       const loadVoiceHome = useCallback(() => {
         fetch('/fairy-zzz/voice-home', { cache: 'no-store' })
           .then((r) => (r.ok ? r.json() : null))
@@ -1074,6 +1096,29 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         h(
           'div',
           { className: 'fz3-set-row' },
+          h(
+            'div',
+            null,
+            h('div', { className: 'fz3-set-label' }, '拖动眼徽'),
+            h(
+              'div',
+              { className: 'fz3-set-desc' },
+              dragPref
+                ? '已开启：按住会话区左缘的眼标，拖到屏幕任意位置，位置会被记住'
+                : '已锁定：眼标固定在会话区左缘中部',
+            ),
+          ),
+          h('button', {
+            type: 'button',
+            className: 'fz3-set-switch',
+            'data-on': dragPref ? '1' : '0',
+            'aria-pressed': !!dragPref,
+            onClick: toggleDrag,
+          }),
+        ),
+        h(
+          'div',
+          { className: 'fz3-set-row' },
           h('div', null, h('div', { className: 'fz3-set-label' }, '语音引擎'), h('div', { className: 'fz3-set-desc' }, engineText)),
           h('span', { className: 'fz3-set-dot' + (ready ? ' is-on' : enginePhase === 'loading' ? ' is-wait' : ' is-off') }),
         ),
@@ -1135,10 +1180,11 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
           { className: 'fz3-set-actions' },
           h('button', { type: 'button', className: 'fz3-set-btn', onClick: playGreet }, '试听问候'),
           h('button', { type: 'button', className: 'fz3-set-btn', onClick: replayBoot }, '重播开机动画'),
+          h('button', { type: 'button', className: 'fz3-set-btn is-ghost', onClick: resetDockPos, disabled: !hasCustomPos }, '眼标复位'),
           h('button', { type: 'button', className: 'fz3-set-btn', onClick: testVoice, disabled: busy }, '测试语音'),
           h('button', { type: 'button', className: 'fz3-set-btn is-ghost', onClick: stopSpeech, disabled: !busy }, '停止'),
         ),
-        h('div', { className: 'fz3-set-note' }, 'Fairy 皮肤 · 待机随机眨眼与花屏、思考态眼睑呼吸，开关都在这里；聊天区左下的眼标只作状态指示，不再弹出面板。'),
+        h('div', { className: 'fz3-set-note' }, 'Fairy 皮肤 · 待机随机眨眼与花屏、思考态眼睑呼吸，开关都在这里；对话区左缘的眼标可以拖动（开关见上），只作状态指示，不弹出面板。'),
       )
     }
 
@@ -1357,6 +1403,31 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
       /* 运行态情绪：宿主 /fairy-zzz/mood 轮询（idle / thinking / working / done） */
       const [mood, setMood] = useState('idle')
 
+      /* 眼徽拖拽：开关与坐标都放 localStorage，设置页改开关时靠事件通知这里 */
+      const [dragOn, setDragOn] = useState(() => readBool(DRAG_KEY, true))
+      const [dragging, setDragging] = useState(false)
+      const [customPos, setCustomPos] = useState(() => {
+        const saved = readStored(POS_KEY, null)
+        return saved && Number.isFinite(saved.x) && Number.isFinite(saved.y) ? saved : null
+      })
+      const dragRef = useRef(null)
+
+      const clampPos = useCallback((x, y) => {
+        const root = document.documentElement
+        const size = parseFloat(getComputedStyle(root).getPropertyValue('--fz3-dock-size')) || 128
+        const half = size / 2 + 4
+        return {
+          x: Math.round(Math.min(Math.max(Number(x) || 0, half), window.innerWidth - half)),
+          y: Math.round(Math.min(Math.max(Number(y) || 0, half), window.innerHeight - half)),
+        }
+      }, [])
+
+      const applyPos = useCallback((p) => {
+        const root = document.documentElement
+        root.style.setProperty('--fz3-dock-x', p.x + 'px')
+        root.style.setProperty('--fz3-dock-y', p.y + 'px')
+      }, [])
+
       useEffect(() => {
         /* 官方字标位置测量：拿到 logo 行 / brandIdentity 的矩形，把我们的
            Fairy 字标钉在同一位置。字标本身由 CSS 隐藏（它是 SVG，没有文本）。 */
@@ -1379,8 +1450,13 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         return () => clearInterval(timer)
       }, [])
       useEffect(() => {
-        /* dock 定位：找到会话区（左侧最靠左的宽容器），把眼标钉在它的左缘中部，
-           与参考视频里「对话时靠在聊天区左边」的位置一致；找不到就退回 25vw / 52vh。 */
+        /* dock 定位：默认找到会话区（左侧最靠左的宽容器），把眼标钉在它的左缘中部，
+           与参考视频里「对话时靠在聊天区左边」的位置一致；找不到就退回 25vw / 52vh。
+           主人自己拖过之后改用记住的坐标，不再自动测量。 */
+        if (customPos) {
+          applyPos(clampPos(customPos.x, customPos.y))
+          return undefined
+        }
         let tries = 0
         let timer = null
         const measure = () => {
@@ -1418,6 +1494,33 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         const onResize = () => setTimeout(kick, 260)
         window.addEventListener('resize', onResize)
         return () => { clearInterval(timer); window.removeEventListener('resize', onResize) }
+      }, [customPos, applyPos, clampPos])
+
+      /* 记住的位置也要跟着窗口缩放夹一下，别把眼标留在屏幕外 */
+      useEffect(() => {
+        if (!customPos) return undefined
+        const onResize = () => applyPos(clampPos(customPos.x, customPos.y))
+        window.addEventListener('resize', onResize)
+        return () => window.removeEventListener('resize', onResize)
+      }, [customPos, applyPos, clampPos])
+
+      /* 设置页里的开关与「复位」通过自定义事件同步到这个图层 */
+      useEffect(() => {
+        const sync = () => setDragOn(readBool(DRAG_KEY, true))
+        const onReset = () => {
+          try { localStorage.removeItem(POS_KEY) } catch {}
+          setCustomPos(null)
+          setDragging(false)
+          applyPos({ x: Math.round(window.innerWidth * 0.25), y: Math.round(window.innerHeight * 0.52) })
+        }
+        window.addEventListener('fz3:drag-pref', sync)
+        window.addEventListener('fz3:dock-reset', onReset)
+        window.addEventListener('storage', sync)
+        return () => {
+          window.removeEventListener('fz3:drag-pref', sync)
+          window.removeEventListener('fz3:dock-reset', onReset)
+          window.removeEventListener('storage', sync)
+        }
       }, [])
 
       useEffect(() => {
@@ -1453,6 +1556,64 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         setNeedTap(false)
         autoArmAt = Date.now() + 2600
       }, [])
+
+      /* ———————————————————— 眼徽拖拽 ———————————————————— */
+      const onCoreDown = (e) => {
+        if (!dragOn || phase !== 'dock') return
+        if (typeof e.button === 'number' && e.button !== 0) return
+        const r = e.currentTarget.getBoundingClientRect()
+        dragRef.current = {
+          id: e.pointerId,
+          dx: e.clientX - (r.left + r.width / 2),
+          dy: e.clientY - (r.top + r.height / 2),
+          sx: e.clientX,
+          sy: e.clientY,
+          moved: false,
+        }
+        try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
+        e.preventDefault()
+      }
+      const onCoreMove = (e) => {
+        const drag = dragRef.current
+        if (!drag || drag.id !== e.pointerId) return
+        if (!drag.moved) {
+          if (Math.abs(e.clientX - drag.sx) < 4 && Math.abs(e.clientY - drag.sy) < 4) return
+          drag.moved = true
+          setDragging(true)
+        }
+        applyPos(clampPos(e.clientX - drag.dx, e.clientY - drag.dy))
+        e.preventDefault()
+      }
+      const onCoreUp = (e) => {
+        const drag = dragRef.current
+        if (!drag || drag.id !== e.pointerId) return
+        dragRef.current = null
+        setDragging(false)
+        /* 只是点了一下、没拖动：不写入坐标，眼徽继续跟着会话区布局走；
+           顺便把这一下让给底下的按钮，免得拖拽模式下眼徽挡住别的控件 */
+        if (!drag.moved) {
+          if (e.clientX > 0 && e.clientY > 0) {
+            const el = e.currentTarget
+            el.style.pointerEvents = 'none'
+            let under = null
+            try { under = document.elementFromPoint(e.clientX, e.clientY) } catch {}
+            el.style.pointerEvents = ''
+            if (under && under !== el && !el.contains(under)) {
+              try {
+                under.dispatchEvent(new MouseEvent('click', {
+                  bubbles: true, cancelable: true, view: window, button: 0,
+                  clientX: e.clientX, clientY: e.clientY,
+                }))
+              } catch {}
+            }
+          }
+          return
+        }
+        const r = e.currentTarget.getBoundingClientRect()
+        const next = clampPos(r.left + r.width / 2, r.top + r.height / 2)
+        setCustomPos(next)
+        writeStored(POS_KEY, next)
+      }
 
       /* ———————————————————— */
       useEffect(() => {
@@ -1512,7 +1673,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
 
       return h(
         'div',
-        { className: 'fz3-layer', 'data-phase': phase, 'data-mood': mood },
+        { className: 'fz3-layer', 'data-phase': phase, 'data-mood': mood, 'data-drag': dragOn ? '1' : '0', 'data-dragging': dragging ? '1' : '0' },
         h(
           'div',
           { className: 'fz3-screen', onClick: needTap ? retryVoice : undefined },
@@ -1547,7 +1708,14 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
                 ref: coreRef,
                 className: 'fz3-core',
                 'data-phase': phase,
-                title: phase === 'dock' ? 'Fairy · 设置 → Fairy' : undefined,
+                'data-drag': dragOn ? '1' : '0',
+                onPointerDown: onCoreDown,
+                onPointerMove: onCoreMove,
+                onPointerUp: onCoreUp,
+                onPointerCancel: onCoreUp,
+                title: phase === 'dock'
+                  ? (dragOn ? '按住拖动：可以把我搬到屏幕任意位置' : 'Fairy · 设置 → Fairy')
+                  : undefined,
               },
               h(CoreGlyph, { phase, mood }),
             )
