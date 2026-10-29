@@ -274,17 +274,41 @@ window.__ModuleLoader__.load({
     }
 
     /* ———————————————————— */
+    function stripChrome(node) {
+      const drop = 'pre, code, button, svg, [data-turn-tail], [data-turn-process], [data-turn-usage-details], [data-message-attachments]'
+      node.querySelectorAll(drop).forEach((item) => item.remove())
+      return (node.innerText || node.textContent || '').trim()
+    }
+
     function readMessageText(el) {
-      if (!el) return ''
-      let node = el
-      let best = ''
-      for (let depth = 0; depth < 10 && node; depth += 1) {
-        const text = (node.innerText || '').trim()
-        if (text.length > best.length) best = text
-        if (text.length > 300) break
-        node = node.parentElement
+      if (!el || typeof el.closest !== 'function') return ''
+      /* 只念「这一轮的最终回复」：DSH 把每条消息渲染成同一个 flow 里的独立条目，
+         正文不在 actions 所在的那个条目里，所以要按 data-chat-turn 找到同一轮的答案条目。 */
+      const own = el.closest('[data-chat-turn]')
+      const turnId = own ? own.getAttribute('data-chat-turn') : null
+      const scope =
+        el.closest('[data-slot="conversation.chat.flow"]') ||
+        el.closest('[data-conversation-scroll]') ||
+        document.body
+      let answer = null
+      let step = null
+      let other = null
+      const items = scope.querySelectorAll('[data-chat-turn]')
+      for (const item of items) {
+        if (turnId !== null && item.getAttribute('data-chat-turn') !== turnId) continue
+        const kind = item.getAttribute('data-chat-flow-kind')
+        if (item.hasAttribute('data-turn-process-answer')) answer = item
+        if (kind === 'assistant-step') step = item
+        else if (kind !== 'user' && kind !== 'turn-tail' && kind !== 'turn-process' && kind !== 'boundary' && !item.querySelector('[data-turn-tail]')) other = item
       }
-      return best
+      const target = answer || step || other
+      if (target) {
+        const text = stripChrome(target.cloneNode(true))
+        if (text.length > 2) return text
+      }
+      const tail = el.closest('[data-turn-tail]')
+      const local = tail && tail.parentElement ? tail.parentElement : null
+      return local ? stripChrome(local.cloneNode(true)) : ''
     }
 
     const seen = new Set(readStored(SEEN_KEY, []))

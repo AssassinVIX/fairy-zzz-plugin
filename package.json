@@ -1,6 +1,6 @@
 {
   "name": "dsh-fairy-zzz",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Zenless Zone Zero Fairy skin for the DSH Web UI: H.D.D boot animation, animated eye core, time-of-day greeting line, idle blink and glitch, thinking eyelid, plus optional local GPT-SoVITS voice.",
   "type": "module",
   "license": "MIT",
