@@ -93,15 +93,15 @@ powershell -ExecutionPolicy Bypass -File .\install-windows.ps1 -Uninstall  # 卸
 | 控件 | 说明 |
 | --- | --- |
 | 自动朗读回复 | 助手回答完成后自动念出来；关掉也可以单独点消息旁的朗读按钮 |
-| 拖动眼徽 | 默认开启：眼标默认停在右下角、输入框上方，按住可以拖到屏幕任意位置，位置记在浏览器里；关掉则锁回默认的右下角 |
-| 显示眼徽 | 关掉后眼徽与用量气泡一起消失，窗口右下角不再有任何浮层；随时可以在这一行重新打开 |
+| 拖动眼徽 | 默认开启：眼标停在会话区左缘，按住可以拖到屏幕任意位置，位置记在浏览器里；关掉则锁回会话区左缘 |
+| 显示眼徽 | 关掉后眼徽与用量气泡一起消失，屏幕上不再有任何浮层；随时可以在这一行重新打开 |
 | 外观 | `跟随` DSH 的浅色 / 深色；也可以强制 `深色` 或 `浅色`，用来避开某个外观下看不清的字 |
 | 语音引擎 | 引擎状态灯：绿=就绪，黄=启动中，灰=未运行 |
 | 语音引擎目录 | 输入引擎目录 → `保存`（写入 `<插件目录>/voice-home.txt`）、`检测`（只校验不保存）、`清除`（回到自动探测） |
 | 启动引擎 / 停止引擎 | 由宿主进程托管引擎的启停 |
 | 刷新状态 | 立即重新探测一次 |
 | 试听问候 / 重播开机动画 | 重放最新问候音频 / 重新走一遍开机 → 问好 → 收成眼徽 |
-| 眼标复位 | 忘掉拖动记下的坐标，把眼标放回右下角的默认锚点 |
+| 眼标复位 | 忘掉拖动记下的坐标，把眼标放回会话区左缘的默认锚点 |
 | 测试语音 / 停止 | 合成一句测试语音 / 停止当前播放 |
 
 ## 语音引擎（可选）
@@ -278,15 +278,15 @@ The script finds your profile, copies the plugin into `node_modules\dsh-fairy-zz
 | Control | What it does |
 | --- | --- |
 | Read replies aloud | Speaks each assistant answer when it finishes; with it off you can still use the speaker button next to a message |
-| Draggable badge | On by default: the badge sits above the composer in the bottom-right corner and can be dragged anywhere on screen; the position is remembered. Off pins it back to that default corner |
-| Show badge | Off hides the badge and its usage bubble together, leaving no overlay in the bottom-right corner; turn it back on here at any time |
+| Draggable badge | On by default: the badge sits at the left edge of the conversation area and can be dragged anywhere on screen; the position is remembered. Off pins it back to that left edge |
+| Show badge | Off hides the badge and its usage bubble together, leaving no overlay on screen; turn it back on here at any time |
 | Appearance | `Auto` follows DSH's light/dark theme; force `Dark` or `Light` if text is hard to read in one of them |
 | Voice engine | Engine status light: green = ready, yellow = starting, grey = not running |
 | Engine directory | Type a directory → `Save` (writes `<plugin dir>/voice-home.txt`), `Detect` (validate without saving), `Clear` (back to auto-detection) |
 | Start / Stop engine | Host-managed engine start and stop |
 | Refresh status | Re-probe immediately |
 | Play greeting / Replay boot | Replay the latest greeting audio / run the boot → greeting → badge sequence again |
-| Reset badge | Forget the remembered drag position and snap the badge back to its default bottom-right spot |
+| Reset badge | Forget the remembered drag position and snap the badge back to the conversation area's left edge |
 | Test voice / Stop | Synthesize a test line / stop current playback |
 
 ## Voice engine (optional)

@@ -492,9 +492,9 @@ window.__ModuleLoader__.load({
   --fz3-mute:#9aa4d6;
   --fz3-line:rgba(110,130,255,.2);
   --fz3-font:"Bahnschrift","DIN Alternate","HarmonyOS Sans SC","Microsoft YaHei UI","PingFang SC","Noto Sans SC",system-ui,sans-serif;
-  /* 默认停靠右下角、输入框上方：绝不停在屏幕正中间压住正文 */
-  --fz3-dock-x:calc(100vw - 88px);
-  --fz3-dock-y:calc(100vh - 196px);
+  /* 默认停靠会话区左缘中部（旧位置，主人要求保留）；量不到会话区才退回 25vw / 52vh */
+  --fz3-dock-x:25vw;
+  --fz3-dock-y:52vh;
   --fz3-dock-size:128px;
   /* 自适应：问候页的眼睛直径 / 眼睛中心高度 / 眼睛到文案的间距，全部随视口缩放 */
   --fz3-eye:clamp(132px,min(32vmin,34vh),330px);
@@ -1461,7 +1461,7 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
               { className: 'fz3-set-desc' },
               eyeHidden
                 ? '已隐藏：眼徽和用量气泡都不再出现，随时能在这里重新打开'
-                : '停在窗口右下角、输入框上方，可以拖着走，也可以随时隐藏',
+                : '停在会话区左缘，可以拖着走，也可以随时隐藏',
             ),
           ),
           h('button', {
@@ -2012,8 +2012,8 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
         return () => clearInterval(timer)
       }, [])
       useEffect(() => {
-        /* dock 定位：默认停在右下角、输入框上方（不压侧栏、不压消息流，也不挡左上角的主菜单）；
-           量到输入框就贴着它的上沿停，量不到就退回视口的右下安全内缩。
+        /* dock 定位：默认找到会话区（左侧最靠左的宽容器），把眼标钉在它的左缘中部，
+           与参考视频里「对话时靠在聊天区左边」的位置一致；找不到就退回 25vw / 52vh。
            主人自己拖过之后改用记住的坐标，不再自动测量。 */
         if (customPos) {
           applyPos(clampPos(customPos.x, customPos.y))
@@ -2023,27 +2023,31 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
         let tries = 0
         let timer = null
         const measure = () => {
-          const root = document.documentElement
-          const size = parseFloat(getComputedStyle(root).getPropertyValue('--fz3-dock-size')) || 128
+          let best = null
           const vw = window.innerWidth
-          const vh = window.innerHeight
-          /* 默认停在右下角、输入框上方；量到输入框就贴着它停，量不到就用视口右下角的安全内缩 */
-          let cx = Math.round(vw - size / 2 - 28)
-          let cy = Math.round(vh - size / 2 - 176)
-          let composerTop = null
-          const composer = document.querySelector('[class*="_composer"]')
-          if (composer) {
-            const r = composer.getBoundingClientRect()
-            if (r.width > 160 && r.top > vh * 0.25) {
-              composerTop = Math.round(r.top)
-              cy = Math.round(r.top - size / 2 - 12)
-            }
+          const all = document.querySelectorAll('div,main,section')
+          for (let i = 0; i < all.length; i += 1) {
+            const el = all[i]
+            const r = el.getBoundingClientRect()
+            if (r.width < 420 || r.height < 300) continue
+            if (r.left < 260 || r.left > vw * 0.5) continue
+            if (r.width > vw * 0.9) continue
+            if (!best || r.left < best.left) best = r
           }
-          const pos = clampPos(cx, cy)
-          root.style.setProperty('--fz3-dock-x', pos.x + 'px')
-          root.style.setProperty('--fz3-dock-y', pos.y + 'px')
-          window.__fz3Dock = { cx: pos.x, cy: pos.y, composerTop: composerTop }
-          return composerTop !== null
+          const root = document.documentElement
+          if (best) {
+            const size = parseFloat(getComputedStyle(root).getPropertyValue('--fz3-dock-size')) || 128
+            let cx = Math.round(best.left + size / 2 - 2)
+            let cy = Math.round(best.top + best.height * 0.5)
+            if (cx < vw * 0.16 || cx > vw * 0.46) cx = Math.round(vw * 0.25)
+            if (cy < window.innerHeight * 0.22 || cy > window.innerHeight * 0.82) cy = Math.round(window.innerHeight * 0.52)
+            root.style.setProperty('--fz3-dock-x', cx + 'px')
+            root.style.setProperty('--fz3-dock-y', cy + 'px')
+            window.__fz3Dock = { cx: cx, cy: cy, left: Math.round(best.left), top: Math.round(best.top), w: Math.round(best.width), h: Math.round(best.height) }
+          } else if (typeof window !== 'undefined') {
+            window.__fz3Dock = { cx: null, cy: null }
+          }
+          return !!best
         }
         const kick = () => {
           tries += 1
