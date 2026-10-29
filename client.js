@@ -534,8 +534,8 @@ html[data-fz3-theme="light"] .fz3-peak-clock{color:#128a4a;border-bottom-color:r
 html[data-fz3-theme="light"] .fz3-peak-clock[data-tone="peak"]{color:#b56a00;border-bottom-color:rgba(181,106,0,.45)}
 html[data-fz3-theme="light"] .fz3-peak-badge{box-shadow:none}
 html[data-fz3-theme="light"] ::selection{background:rgba(61,91,240,.22);color:#0d1424}
-html[data-fz3-theme="light"] .fz3-brandname b{color:#0f1730;text-shadow:0 0 12px rgba(96,132,255,.35)}
-html[data-fz3-theme="light"] .fz3-brandname i{color:rgba(68,96,166,.88)}
+html[data-fz3-theme="light"] .fz3-brandname b{color:#0f1730!important;text-shadow:0 0 12px rgba(96,132,255,.35)!important}
+html[data-fz3-theme="light"] .fz3-brandname i{color:rgba(68,96,166,.88)!important}
 html[data-fz3-theme="light"] .fz3-brandmark-eye{filter:drop-shadow(0 0 7px rgba(70,110,230,.42))}
 body{font-family:var(--fz3-font)!important;}
 body::before{
@@ -2212,7 +2212,12 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         guard('styles', () => {
           if (typeof document === 'undefined') return
           const tagId = PKG + '/fairy-zzz.css'
-          if (document.querySelector('style[data-plugin-css=' + JSON.stringify(tagId) + ']')) return
+          const existing = document.querySelector('style[data-plugin-css=' + JSON.stringify(tagId) + ']')
+          if (existing) {
+            /* HMR 重新 apply 时把内容刷新一遍，否则样式表会一直停在第一次注入的版本 */
+            if (existing.textContent !== CSS) existing.textContent = CSS
+            return
+          }
           const tag = document.createElement('style')
           tag.dataset.plugin = PKG
           tag.dataset.pluginCss = tagId
