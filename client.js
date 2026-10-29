@@ -534,6 +534,9 @@ html[data-fz3-theme="light"] .fz3-peak-clock{color:#128a4a;border-bottom-color:r
 html[data-fz3-theme="light"] .fz3-peak-clock[data-tone="peak"]{color:#b56a00;border-bottom-color:rgba(181,106,0,.45)}
 html[data-fz3-theme="light"] .fz3-peak-badge{box-shadow:none}
 html[data-fz3-theme="light"] ::selection{background:rgba(61,91,240,.22);color:#0d1424}
+html[data-fz3-theme="light"] .fz3-brandname b{color:#0f1730;text-shadow:0 0 12px rgba(96,132,255,.35)}
+html[data-fz3-theme="light"] .fz3-brandname i{color:rgba(68,96,166,.88)}
+html[data-fz3-theme="light"] .fz3-brandmark-eye{filter:drop-shadow(0 0 7px rgba(70,110,230,.42))}
 body{font-family:var(--fz3-font)!important;}
 body::before{
   content:"";position:fixed;inset:-12%;z-index:-2;pointer-events:none;
