@@ -657,6 +657,9 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
 .fz3-peak-clock{font-family:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:700;letter-spacing:.06em;color:#3ed873;padding-bottom:2px;border-bottom:1px solid rgba(62,216,115,.55)}
 .fz3-peak-clock[data-tone="peak"]{color:#ffb45c;border-bottom-color:rgba(255,180,92,.55)}
 @keyframes fz3-bubble-in{from{opacity:0;transform:translateY(-50%) translateX(-6px)}to{opacity:1;transform:translateY(-50%)}}
+.fz3-bubble[data-side="left"]{animation-name:fz3-bubble-in-left}
+.fz3-bubble[data-side="left"]::after{left:auto;right:-5px;border-left:0;border-bottom:0;border-right:1px solid rgba(120,170,255,.3);border-top:1px solid rgba(120,170,255,.3)}
+@keyframes fz3-bubble-in-left{from{opacity:0;transform:translateY(-50%) translateX(6px)}to{opacity:1;transform:translateY(-50%)}}
 
 .fz3-layer[data-drag="1"][data-phase="dock"] .fz3-core:active{cursor:grabbing}
 .fz3-layer[data-dragging="1"][data-phase="dock"] .fz3-core{transition:none;cursor:grabbing}
@@ -1590,7 +1593,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
 
     /* 气泡：usage 态给「余额 / 今日花费 / 峰谷」，turn 态只给「本轮花费 / 峰谷」 */
     function BubbleCard({ data }) {
-      const { mode, x, y, loading, usage, balance } = data
+      const { mode, x, y, side, loading, usage, balance } = data
       const peak = usage && usage.peak
       const bucket = usage ? (mode === 'turn' ? usage.turn : usage.today) : null
       const rows = []
@@ -1652,6 +1655,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         {
           className: 'fz3-bubble',
           'data-mode': mode,
+          'data-side': side || 'right',
           'data-loading': loading ? '1' : '0',
           style: { left: x + 'px', top: y + 'px' },
         },
@@ -1688,16 +1692,29 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         setBubble(null)
       }, [])
 
+      /* 气泡挂点：右侧放不下（会越出右边界）就翻到眼徽左侧，垂直始终跟着眼徽中心 */
+      const bubblePlace = useCallback((rect) => {
+        const W = 236
+        const H = 162
+        const gap = 16
+        const margin = 12
+        const flip = rect.right + gap + W > window.innerWidth - margin
+        const raw = flip ? rect.left - gap - W : rect.right + gap
+        return {
+          x: Math.round(Math.min(Math.max(raw, margin), Math.max(margin, window.innerWidth - W - margin))),
+          y: Math.round(
+            Math.min(Math.max(rect.top + rect.height / 2, H / 2 + 8), Math.max(H / 2 + 8, window.innerHeight - H / 2 - 8)),
+          ),
+          side: flip ? 'left' : 'right',
+        }
+      }, [])
+
       const openBubble = useCallback(async (mode) => {
         const el = coreRef.current
         if (!el) return
         const r = el.getBoundingClientRect()
-        /* 气泡默认挂在眼徽右侧；贴到窗口右/上/下边时回收，别飘出屏幕 */
-        const W = 236
-        const H = 162
-        const cx = Math.min(Math.max(Math.round(r.right + 16), 12), Math.max(12, window.innerWidth - W - 12))
-        const cy = Math.min(Math.max(Math.round(r.top + r.height / 2), H / 2 + 8), Math.max(H / 2 + 8, window.innerHeight - H / 2 - 8))
-        const pos = { x: cx, y: cy }
+        /* 气泡默认挂在眼徽右侧；右边放不下就整体翻到左侧，上下越界再回收 */
+        const pos = bubblePlace(r)
         setBubble({ mode, ...pos, loading: true })
         if (bubbleTimer.current) {
           clearTimeout(bubbleTimer.current)
@@ -1902,6 +1919,14 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
           setDragging(true)
         }
         applyPos(clampPos(e.clientX - drag.dx, e.clientY - drag.dy))
+        /* 气泡跟着眼徽走：拖动中每个 move 重算一次挂点，靠近右边界自动翻到左侧 */
+        if (bubble) {
+          const el = coreRef.current
+          if (el) {
+            const next = bubblePlace(el.getBoundingClientRect())
+            setBubble((prev) => (prev ? { ...prev, ...next } : prev))
+          }
+        }
         e.preventDefault()
       }
       const onCoreUp = (e) => {
