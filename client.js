@@ -1009,6 +1009,9 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
     let lastGlitchAt = 0
     const bootHooks = new Set()
 
+    /* 本次页面加载是否已经放过开机动画：组件重挂载时不再重播（重播按钮会先把它清零） */
+    let bootPlayed = false
+
     function CoreGlyph({ phase, mood }) {
       const [blink, setBlink] = useState('0')
       const [glance, setGlance] = useState('')
@@ -1405,42 +1408,56 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
       const finish = useCallback(() => {
         if (doneRef.current) return
         doneRef.current = true
+        bootPlayed = true
         setOut(true)
         setTimeout(onDone, 640)
       }, [onDone])
 
+      /* finish 每次渲染都是新函数，放进 ref，避免重渲染把播放 effect 重新跑一遍（会把放完的片子又拉回 0 秒） */
+      const finishRef = useRef(finish)
+      finishRef.current = finish
+
       useEffect(() => {
         const video = videoRef.current
         if (!video) return
+        if (doneRef.current) return
         let disposed = false
         video.volume = 0.9
         // 先试着带声音播放；浏览器拦住自动播放（NotAllowedError）时退回静音，
         // 等主人第一次点按/敲键再把声音打开，保证开机动画无论如何先放起来。
         const unlock = () => {
-          if (disposed || !video.muted) return
+          if (disposed || doneRef.current || !video.muted) return
           video.muted = false
           const p = video.play()
           if (p && p.catch) p.catch(() => { video.muted = true })
         }
         video.muted = false
-        const playing = video.play()
-        if (playing && playing.catch) {
-          playing.catch(() => {
-            video.muted = true
-            const retry = video.play()
-            if (retry && retry.catch) retry.catch(() => {})
-          })
+        /* 只从头放一次：已经播过或已结束就不再碰 play() */
+        if (!video.ended && video.currentTime < 0.05) {
+          /* 一开始就占位：中途被卸载重挂也不会再来一遍 */
+          bootPlayed = true
+          const playing = video.play()
+          if (playing && playing.catch) {
+            playing.catch(() => {
+              if (disposed) return
+              video.muted = true
+              const retry = video.play()
+              if (retry && retry.catch) retry.catch(() => {})
+            })
+          }
         }
         window.addEventListener('pointerdown', unlock)
         window.addEventListener('keydown', unlock)
-        const failsafe = setTimeout(finish, 18_000)
+        const failsafe = setTimeout(() => {
+          if (!disposed) finishRef.current()
+        }, 18_000)
         return () => {
           disposed = true
           clearTimeout(failsafe)
           window.removeEventListener('pointerdown', unlock)
           window.removeEventListener('keydown', unlock)
         }
-      }, [finish])
+      }, [])
 
       const onTime = () => {
         const video = videoRef.current
@@ -1645,7 +1662,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
     }
 
     function FairySkin() {
-      const [phase, setPhase] = useState('boot')
+      const [phase, setPhase] = useState(() => (bootPlayed ? 'dock' : 'boot'))
 
       /* 运行态情绪：宿主 /fairy-zzz/mood 轮询（idle / thinking / working / done） */
       const [mood, setMood] = useState('idle')
@@ -1952,7 +1969,11 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
 
       /* 设置页里的「重播开机动画」→ 回到 boot 阶段 */
       useEffect(() => {
-        const fn = () => { stopSpeech(); setPhase('boot') }
+        const fn = () => {
+          bootPlayed = false
+          stopSpeech()
+          setPhase('boot')
+        }
         bootHooks.add(fn)
         return () => { bootHooks.delete(fn) }
       }, [])
