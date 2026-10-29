@@ -371,16 +371,17 @@ window.__ModuleLoader__.load({
 
     async function fetchBalance() {
       const ctx = runtime.ctx
-      if (!ctx) return null
+      if (!ctx) return { ok: false, reason: '没有插件上下文' }
       let account
       let active
       try {
-        account = ctx.remote && ctx.remote.account
+        /* 账户服务在 ctx.remote 上；没注入 remote.account 时 account 可能还没挂上 */
+        account = (ctx.remote && ctx.remote.account) || (ctx['remote.account'] && ctx['remote.account'].account) || null
         active = ctx.locale && ctx.locale.getSnapshot ? ctx.locale.getSnapshot().active : undefined
-      } catch {
-        return null
+      } catch (cause) {
+        return { ok: false, reason: '账户服务不可用：' + (cause && cause.message ? cause.message : cause) }
       }
-      if (!account || typeof account.getBalance !== 'function') return null
+      if (!account || typeof account.getBalance !== 'function') return { ok: false, reason: '账户服务未就绪' }
       const version = (typeof globalThis.__DSH_CLIENT_VERSION__ === 'string' && globalThis.__DSH_CLIENT_VERSION__) || '0.2.1-rc.2'
       try {
         const res = await account.getBalance({
@@ -388,15 +389,16 @@ window.__ModuleLoader__.load({
           locale: active || navigator.language || 'zh-CN',
           timezoneOffsetSeconds: -new Date().getTimezoneOffset() * 60,
         })
-        if (!res || !res.ok) return null
+        if (!res) return { ok: false, reason: '余额接口没有返回' }
+        if (!res.ok) return { ok: false, reason: '余额读取被拒绝：' + String(res.error?.code || res.error?.message || '未登录') }
         const list = Array.isArray(res.value) ? res.value : []
         const wallet = list.find((item) => (item?.currency || 'CNY') === 'CNY') || list[0]
-        if (!wallet) return null
+        if (!wallet) return { ok: false, reason: '账户里没有钱包' }
         const amount = Number(wallet.balance)
-        if (!Number.isFinite(amount)) return null
-        return { amount, currency: wallet.currency || 'CNY' }
-      } catch {
-        return null
+        if (!Number.isFinite(amount)) return { ok: false, reason: '余额格式异常' }
+        return { ok: true, amount, currency: wallet.currency || 'CNY' }
+      } catch (cause) {
+        return { ok: false, reason: '余额请求失败：' + (cause && cause.message ? cause.message : cause) }
       }
     }
 
@@ -1540,7 +1542,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
       const rows = []
 
       if (mode === 'usage') {
-        rows.push(['余额', loading ? '…' : balance ? yuan(balance.amount) : '读取失败'])
+        rows.push(['余额', loading ? '…' : balance && balance.ok ? yuan(balance.amount) : '读取失败'])
         rows.push(['今日花费', loading ? '…' : bucket ? yuan(bucket.cost) : '—'])
       } else {
         rows.push(['本轮花费', loading ? '…' : bucket ? yuan(bucket.cost) : '—'])
@@ -1554,6 +1556,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         )
       }
       if (peak) detail.push(`${peak.window} · ${peak.next}`)
+      if (mode === 'usage' && !loading && balance && !balance.ok && balance.reason) detail.push(balance.reason)
 
       return h(
         'div',
@@ -1972,7 +1975,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
      * 挂载
      * ------------------------------------------------------------------ */
     return {
-      inject: ['slots', 'remote', 'locale'],
+      inject: ['slots', 'remote', 'remote.account', 'locale'],
       apply(ctx) {
         runtime.ctx = ctx
         const guard = (label, fn) => {
