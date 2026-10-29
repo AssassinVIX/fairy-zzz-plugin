@@ -537,6 +537,9 @@ html[data-fz3-theme="light"] ::selection{background:rgba(61,91,240,.22);color:#0
 html[data-fz3-theme="light"] .fz3-brandname b{color:#0f1730!important;text-shadow:0 0 12px rgba(96,132,255,.35)!important}
 html[data-fz3-theme="light"] .fz3-brandname i{color:rgba(68,96,166,.88)!important}
 html[data-fz3-theme="light"] .fz3-brandmark-eye{filter:drop-shadow(0 0 7px rgba(70,110,230,.42))}
+/* 侧栏真正的字标是 .fz3-sb-text（.fz3-brandname 只在旧版标记里用） */
+html[data-fz3-theme="light"] .fz3-sb-text b{color:#101a35!important;text-shadow:0 0 10px rgba(96,132,255,.28)!important}
+html[data-fz3-theme="light"] .fz3-sb-text i{color:rgba(70,98,166,.9)!important}
 body{font-family:var(--fz3-font)!important;}
 body::before{
   content:"";position:fixed;inset:-12%;z-index:-2;pointer-events:none;
