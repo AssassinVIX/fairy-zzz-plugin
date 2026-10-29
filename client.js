@@ -439,6 +439,15 @@ window.__ModuleLoader__.load({
       return '不到 1 分'
     }
 
+    /* 倒计时表盘：04:09:12 */
+    function clockText(ms) {
+      const total = Math.max(0, Math.floor(Math.max(0, ms) / 1_000))
+      const hours = String(Math.floor(total / 3600)).padStart(2, '0')
+      const minutes = String(Math.floor((total % 3600) / 60)).padStart(2, '0')
+      const seconds = String(total % 60).padStart(2, '0')
+      return hours + ':' + minutes + ':' + seconds
+    }
+
     /* ------------------------------------------------------------------ *
      * 样式
      * ------------------------------------------------------------------ */
@@ -641,6 +650,12 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
 .fz3-bubble-v b{font-weight:600}
 .fz3-bubble-sub{margin-top:6px;font-size:10px;color:rgba(154,164,214,.85);letter-spacing:.04em}
 .fz3-bubble[data-loading="1"] .fz3-bubble-v{opacity:.35}
+/* 峰谷：圆角标签 + 等宽倒计时（谷绿 / 峰橙） */
+.fz3-peak{display:inline-flex;align-items:center;gap:7px}
+.fz3-peak-badge{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:5px;font-size:11px;font-weight:700;line-height:1;color:#fff;background:#2ec25f;box-shadow:0 0 9px rgba(46,194,95,.4)}
+.fz3-peak-badge[data-tone="peak"]{background:#f0a13a;box-shadow:0 0 9px rgba(240,161,58,.4)}
+.fz3-peak-clock{font-family:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,monospace;font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:700;letter-spacing:.06em;color:#3ed873;padding-bottom:2px;border-bottom:1px solid rgba(62,216,115,.55)}
+.fz3-peak-clock[data-tone="peak"]{color:#ffb45c;border-bottom-color:rgba(255,180,92,.55)}
 @keyframes fz3-bubble-in{from{opacity:0;transform:translateY(-50%) translateX(-6px)}to{opacity:1;transform:translateY(-50%)}}
 
 .fz3-layer[data-drag="1"][data-phase="dock"] .fz3-core:active{cursor:grabbing}
@@ -1579,7 +1594,23 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
       } else {
         rows.push(['本轮花费', loading ? '…' : bucket ? yuan(bucket.cost) : '—'])
       }
-      rows.push(['峰谷', loading ? '…' : peak ? peak.label : '—'])
+      const left = nextAt ? nextAt - nowTick : 0
+      const tone = peak && peak.offPeak ? 'valley' : 'peak'
+      rows.push([
+        '峰谷',
+        loading
+          ? '…'
+          : peak
+            ? nextAt && left > 0
+              ? h(
+                  'span',
+                  { className: 'fz3-peak' },
+                  h('span', { className: 'fz3-peak-badge', 'data-tone': tone }, peak.offPeak ? '谷' : '峰'),
+                  h('span', { className: 'fz3-peak-clock', 'data-tone': tone }, clockText(left)),
+                )
+              : peak.label
+            : '—',
+      ])
 
       const detail = []
       if (bucket && bucket.calls) {
@@ -1589,11 +1620,10 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
       }
       if (peak) {
         const flip = peak.offPeak ? '高峰' : '空闲'
-        const left = nextAt - nowTick
         detail.push(
           nextAt
             ? left > 0
-              ? `${peak.window} · ${leftText(left)}后转${flip}价`
+              ? `${peak.window} · 后转${flip}价`
               : `${peak.window} · 换价时刻已到，点眼徽刷新`
             : `${peak.window} · ${peak.next}`,
         )
