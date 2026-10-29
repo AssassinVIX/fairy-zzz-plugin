@@ -15,7 +15,8 @@
 
 - **开机动画**：整屏播放 H.D.D 启动片，视频按 `object-fit: contain` 完整显示，多余区域由同帧的模糊铺底填充，任何窗口比例都不会出现硬黑边。启动片自带音轨：页面允许自动播放时直接带声音放，被浏览器拦下就先静音播放，等你第一次点按/敲键再把声音打开。
 - **居中问好**：动画结束后淡入 H.D.D 眼徽（深蓝环 / 白盘 / 蓝瞳 / 高光点），背后是蓝光晕图，`HOLLOW DEEP DIVE SYSTEM` 标题带镜面倒影，下方按当前时段（凌晨/上午/中午/下午/傍晚/深夜）播一句问候并同步播放预录音频。
-- **收成眼徽**：问候结束约 1.9s 后眼徽飞到会话区左缘的中线（侧栏右侧的蓝色圈内）常驻，光晕图淡出；眼徽本身只是状态指示，点击不再弹面板。默认可以按住拖到屏幕任意位置，坐标写进 `localStorage`，刷新后仍在原位；不想要拖动就去 `设置 → Fairy` 关掉「拖动眼徽」，或用「眼标复位」回到会话区左缘。
+- **收成眼徽**：问候结束约 1.9s 后眼徽飞到会话区左缘的中线（侧栏右侧的蓝色圈内）常驻，光晕图淡出。默认可以按住拖到屏幕任意位置，坐标写进 `localStorage`，刷新后仍在原位；不想要拖动就去 `设置 → Fairy` 关掉「拖动眼徽」，或用「眼标复位」回到会话区左缘。
+- **用量气泡**：单击眼徽弹出一个小气泡，显示 DeepSeek 账户余额、今天的花费（按百万 token 折算，含缓存命中/未命中/输出三段拆分）和当前是高峰还是空闲时段；再点一下收起。每轮对话跑完会自动弹一次，这时只报「本轮花费 + 峰谷」，不显示余额与今日合计，18 秒后自己消失。价格表与时段规则都在 `index.js` 的 `PRICES` / `peakState()` 里，改一处就够。
 - **状态动效**（复刻参考实现 Fairy-DSH 的几何与时长）：
   - `idle` 呼吸 + 缓慢自转 + 扫描光带；
   - `thinking/working` 上眼睑压到半闭并轻微呼吸；
@@ -142,6 +143,7 @@ powershell -ExecutionPolicy Bypass -File .\install-windows.ps1 -Uninstall  # 卸
 | POST | `/fairy-zzz/tts` | `{ text }` → `{ url, cached, seconds }`，清 markdown/代码块后截 500 字 |
 | GET | `/fairy-zzz/health` | `{ ok, engine, voice, speed, home }` |
 | GET | `/fairy-zzz/mood` | `idle` / `thinking` / `working` / `done`（驱动眼徽状态） |
+| GET | `/fairy-zzz/usage` | `{ peak, today, turn }`：今日与本轮的 token 用量、折算花费、当前峰谷时段（聚合本机会话日志） |
 | GET | `/fairy-zzz/voice-home` | 当前引擎目录与来源 |
 | POST | `/fairy-zzz/voice-home` | 保存 / 校验引擎目录 |
 | GET | `/fairy-zzz/engine` | 引擎进程状态 |
@@ -206,7 +208,8 @@ It turns the DSH web interface into Fairy's H.D.D terminal: a full-screen boot a
 
 - **Boot animation** — the H.D.D startup clip fills the screen with `object-fit: contain`, and the leftover area is filled with a blurred copy of the same frame, so no hard black bars appear at any window ratio. The clip carries its own audio track: it plays with sound when the page allows autoplay, otherwise it starts muted and unmutes on your first click or keypress.
 - **Centered greeting** — when the clip ends, the H.D.D eye badge (deep-blue ring / white disc / blue iris / highlight dot) fades in over a blue glow, with a mirrored `HOLLOW DEEP DIVE SYSTEM` title and a time-of-day greeting (small hours / morning / noon / afternoon / evening / late night) played together with a matching pre-recorded audio clip.
-- **Badge hand-off** — about 1.9 s after the greeting the badge flies to the middle of the left edge of the conversation area (inside the blue ring next to the sidebar) and stays there while the glow fades out. The badge is a status indicator only; clicking it no longer opens a panel. It is draggable by default: hold it and move it anywhere on screen — the position is stored in `localStorage` and survives a reload. Turn "Draggable badge" off under *Settings → Fairy*, or use "Reset badge" to snap it back to the left edge of the conversation area.
+- **Badge hand-off** — about 1.9 s after the greeting the badge flies to the middle of the left edge of the conversation area (inside the blue ring next to the sidebar) and stays there while the glow fades out. It is draggable by default: hold it and move it anywhere on screen — the position is stored in `localStorage` and survives a reload. Turn "Draggable badge" off under *Settings → Fairy*, or use "Reset badge" to snap it back to the left edge of the conversation area.
+- **Usage bubble** — a click on the badge pops a small card with your DeepSeek balance, today's spend (converted per million tokens, split into cache-hit / cache-miss / output) and whether you are in the peak or off-peak window; click again to dismiss. It also pops by itself at the end of every turn, and that one only reports the turn's cost plus the peak/off-peak state — no balance, no daily total — then disappears after 18 s. The price table and the window rule live in `PRICES` / `peakState()` in `index.js`.
 - **State animations** (geometry and timings replicate the reference implementation, Fairy-DSH):
   - `idle` — breathing, slow rotation, a sweeping scan light;
   - `thinking` / `working` — the upper eyelid drops to half-closed and breathes slightly;
@@ -321,6 +324,7 @@ The host side only registers these read-only/local routes (prefix `/fairy-zzz`):
 | POST | `/fairy-zzz/tts` | `{ text }` → `{ url, cached, seconds }`; strips markdown/code blocks and truncates to 500 characters |
 | GET | `/fairy-zzz/health` | `{ ok, engine, voice, speed, home }` |
 | GET | `/fairy-zzz/mood` | `idle` / `thinking` / `working` / `done` (drives the badge) |
+| GET | `/fairy-zzz/usage` | `{ peak, today, turn }`: token usage and converted cost for today and the current turn, plus the current peak/off-peak window (aggregated from local session logs) |
 | GET | `/fairy-zzz/voice-home` | Current engine directory and where it came from |
 | POST | `/fairy-zzz/voice-home` | Save / validate the engine directory |
 | GET | `/fairy-zzz/engine` | Engine process state |

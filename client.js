@@ -355,6 +355,67 @@ window.__ModuleLoader__.load({
     for (const key of Object.keys(baseTokens)) TOKENS[key] = { light: baseTokens[key], dark: baseTokens[key] }
 
     /* ------------------------------------------------------------------ *
+     * 用量气泡的数据源
+     * ------------------------------------------------------------------ */
+    const runtime = { ctx: null }
+
+    async function fetchUsage() {
+      try {
+        const res = await fetch('/fairy-zzz/usage', { cache: 'no-store' })
+        if (!res.ok) return null
+        return await res.json()
+      } catch {
+        return null
+      }
+    }
+
+    async function fetchBalance() {
+      const ctx = runtime.ctx
+      if (!ctx) return null
+      let account
+      let active
+      try {
+        account = ctx.remote && ctx.remote.account
+        active = ctx.locale && ctx.locale.getSnapshot ? ctx.locale.getSnapshot().active : undefined
+      } catch {
+        return null
+      }
+      if (!account || typeof account.getBalance !== 'function') return null
+      const version = (typeof globalThis.__DSH_CLIENT_VERSION__ === 'string' && globalThis.__DSH_CLIENT_VERSION__) || '0.2.1-rc.2'
+      try {
+        const res = await account.getBalance({
+          version,
+          locale: active || navigator.language || 'zh-CN',
+          timezoneOffsetSeconds: -new Date().getTimezoneOffset() * 60,
+        })
+        if (!res || !res.ok) return null
+        const list = Array.isArray(res.value) ? res.value : []
+        const wallet = list.find((item) => (item?.currency || 'CNY') === 'CNY') || list[0]
+        if (!wallet) return null
+        const amount = Number(wallet.balance)
+        if (!Number.isFinite(amount)) return null
+        return { amount, currency: wallet.currency || 'CNY' }
+      } catch {
+        return null
+      }
+    }
+
+    function yuan(value) {
+      if (!Number.isFinite(value)) return '—'
+      if (value === 0) return '¥0'
+      if (value < 0.01) return '¥' + value.toFixed(4)
+      if (value < 10) return '¥' + value.toFixed(3).replace(/0+$/, '')
+      return '¥' + value.toFixed(2)
+    }
+
+    function tokensText(tokens) {
+      const n = Number(tokens) || 0
+      if (n >= 1e6) return (n / 1e6).toFixed(2).replace(/\.?0+$/, '') + 'M'
+      if (n >= 1e3) return (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'k'
+      return String(n)
+    }
+
+    /* ------------------------------------------------------------------ *
      * 样式
      * ------------------------------------------------------------------ */
     const CSS = `
@@ -504,10 +565,60 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
 }
 .fz3-layer[data-phase="greet"] .fz3-core{opacity:1}
 .fz3-layer[data-phase="dock"] .fz3-core{
-  left:var(--fz3-dock-x);top:var(--fz3-dock-y);width:var(--fz3-dock-size);opacity:1;pointer-events:none;
+  left:var(--fz3-dock-x);top:var(--fz3-dock-y);width:var(--fz3-dock-size);opacity:1;pointer-events:auto;cursor:pointer;
 }
-/* 可拖拽眼徽：开关在「设置 → Fairy」，关掉就锁死在会话区左缘 */
-.fz3-layer[data-drag="1"][data-phase="dock"] .fz3-core{pointer-events:auto;cursor:grab;touch-action:none}
+/* 拖拽模式：光标与触摸手势 */
+.fz3-layer[data-drag="1"][data-phase="dock"] .fz3-core{cursor:grab;touch-action:none}
+
+/* ————— 用量气泡：单击眼徽展开，再点收起 ————— */
+.fz3-bubble{
+  position:fixed;
+  z-index:9002;
+  pointer-events:auto;
+  min-width:210px;
+  padding:12px 14px 11px;
+  border-radius:14px;
+  background:linear-gradient(160deg,rgba(12,26,70,.97),rgba(5,12,34,.97));
+  border:1px solid rgba(120,170,255,.3);
+  box-shadow:0 18px 44px rgba(2,6,20,.6),0 0 0 1px rgba(87,232,255,.05) inset,0 0 22px rgba(61,91,240,.22);
+  color:var(--fz3-text);
+  font-family:var(--fz3-font);
+  font-size:12px;
+  line-height:1.55;
+  transform:translateY(-50%);
+  animation:fz3-bubble-in .18s ease-out;
+  backdrop-filter:blur(9px);
+}
+.fz3-bubble::after{
+  content:"";
+  position:absolute;
+  left:-5px;
+  top:50%;
+  width:10px;
+  height:10px;
+  margin-top:-5px;
+  transform:rotate(45deg);
+  background:rgba(12,26,70,.97);
+  border-left:1px solid rgba(120,170,255,.3);
+  border-bottom:1px solid rgba(120,170,255,.3);
+}
+.fz3-bubble-head{
+  font-size:10px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:#8fb4ff;
+  margin-bottom:7px;
+}
+.fz3-bubble[data-mode="turn"] .fz3-bubble-head{color:#ffd98a}
+.fz3-bubble-row{display:flex;align-items:baseline;justify-content:space-between;gap:18px}
+.fz3-bubble-row + .fz3-bubble-row{margin-top:3px}
+.fz3-bubble-k{color:var(--fz3-mute)}
+.fz3-bubble-v{font-variant-numeric:tabular-nums;color:#eaf4ff}
+.fz3-bubble-v b{font-weight:600}
+.fz3-bubble-sub{margin-top:6px;font-size:10px;color:rgba(154,164,214,.85);letter-spacing:.04em}
+.fz3-bubble[data-loading="1"] .fz3-bubble-v{opacity:.35}
+@keyframes fz3-bubble-in{from{opacity:0;transform:translateY(-50%) translateX(-6px)}to{opacity:1;transform:translateY(-50%)}}
+
 .fz3-layer[data-drag="1"][data-phase="dock"] .fz3-core:active{cursor:grabbing}
 .fz3-layer[data-dragging="1"][data-phase="dock"] .fz3-core{transition:none;cursor:grabbing}
 .fz3-layer[data-dragging="1"][data-phase="dock"] .fz3-core svg{transition:none;transform:scale(1.05)}
@@ -1421,6 +1532,43 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
     }
 
 
+    /* 气泡：usage 态给「余额 / 今日花费 / 峰谷」，turn 态只给「本轮花费 / 峰谷」 */
+    function BubbleCard({ data }) {
+      const { mode, x, y, loading, usage, balance } = data
+      const peak = usage && usage.peak
+      const bucket = usage ? (mode === 'turn' ? usage.turn : usage.today) : null
+      const rows = []
+
+      if (mode === 'usage') {
+        rows.push(['余额', loading ? '…' : balance ? yuan(balance.amount) : '读取失败'])
+        rows.push(['今日花费', loading ? '…' : bucket ? yuan(bucket.cost) : '—'])
+      } else {
+        rows.push(['本轮花费', loading ? '…' : bucket ? yuan(bucket.cost) : '—'])
+      }
+      rows.push(['峰谷', loading ? '…' : peak ? peak.label : '—'])
+
+      const detail = []
+      if (bucket && bucket.calls) {
+        detail.push(
+          `${bucket.calls} 次请求 · ${tokensText(bucket.hit)} 命中 / ${tokensText(bucket.miss)} 未命中 / ${tokensText(bucket.out)} 输出`,
+        )
+      }
+      if (peak) detail.push(`${peak.window} · ${peak.next}`)
+
+      return h(
+        'div',
+        {
+          className: 'fz3-bubble',
+          'data-mode': mode,
+          'data-loading': loading ? '1' : '0',
+          style: { left: x + 'px', top: y + 'px' },
+        },
+        h('div', { className: 'fz3-bubble-head' }, mode === 'turn' ? 'Fairy · 本轮结算' : 'Fairy · 用量'),
+        rows.map(([k, v]) => h('div', { className: 'fz3-bubble-row', key: k }, h('span', { className: 'fz3-bubble-k' }, k), h('span', { className: 'fz3-bubble-v' }, h('b', null, v)))),
+        detail.length ? h('div', { className: 'fz3-bubble-sub' }, detail.map((line, i) => h('div', { key: i }, line))) : null,
+      )
+    }
+
     function FairySkin() {
       const [phase, setPhase] = useState('boot')
 
@@ -1435,6 +1583,43 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         return saved && Number.isFinite(saved.x) && Number.isFinite(saved.y) ? saved : null
       })
       const dragRef = useRef(null)
+
+      /* 用量气泡：null = 收起；mode = 'usage'（余额·今日·峰谷）| 'turn'（本轮·峰谷） */
+      const [bubble, setBubble] = useState(null)
+      const bubbleTimer = useRef(null)
+
+      const closeBubble = useCallback(() => {
+        if (bubbleTimer.current) {
+          clearTimeout(bubbleTimer.current)
+          bubbleTimer.current = null
+        }
+        setBubble(null)
+      }, [])
+
+      const openBubble = useCallback(async (mode) => {
+        const el = coreRef.current
+        if (!el) return
+        const r = el.getBoundingClientRect()
+        /* 气泡默认挂在眼徽右侧；贴到窗口右/上/下边时回收，别飘出屏幕 */
+        const W = 236
+        const H = 162
+        const cx = Math.min(Math.max(Math.round(r.right + 16), 12), Math.max(12, window.innerWidth - W - 12))
+        const cy = Math.min(Math.max(Math.round(r.top + r.height / 2), H / 2 + 8), Math.max(H / 2 + 8, window.innerHeight - H / 2 - 8))
+        const pos = { x: cx, y: cy }
+        setBubble({ mode, ...pos, loading: true })
+        if (bubbleTimer.current) {
+          clearTimeout(bubbleTimer.current)
+          bubbleTimer.current = null
+        }
+        const [usage, balance] = await Promise.all([fetchUsage(), mode === 'usage' ? fetchBalance() : Promise.resolve(null)])
+        setBubble((prev) => (prev && prev.mode === mode ? { ...prev, ...pos, loading: false, usage, balance } : prev))
+        if (mode === 'turn') {
+          bubbleTimer.current = setTimeout(() => {
+            bubbleTimer.current = null
+            setBubble((prev) => (prev && prev.mode === 'turn' ? null : prev))
+          }, 18_000)
+        }
+      }, [])
 
       const clampPos = useCallback((x, y) => {
         const root = document.documentElement
@@ -1564,6 +1749,16 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
           clearInterval(timer)
         }
       }, [])
+      /* 一轮跑完 → 自动弹一次“本轮花费”，18 秒后自己消失 */
+      const doneMark = useRef('')
+      useEffect(() => {
+        if (phase !== 'dock' || mood !== 'done') return
+        const stamp = String(Date.now()).slice(0, -4)
+        if (doneMark.current === stamp) return
+        doneMark.current = stamp
+        openBubble('turn')
+      }, [mood, phase, openBubble])
+      useEffect(() => closeBubble, [closeBubble])
       const [needTap, setNeedTap] = useState(false)
       const [engine, setEngine] = useState(null)
       const greetAudio = useRef(null)
@@ -1582,6 +1777,15 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
       }, [])
 
       /* ———————————————————— 眼徽拖拽 ———————————————————— */
+      const toggleBubble = useCallback(() => {
+        if (phase !== 'dock') return
+        if (bubble) {
+          closeBubble()
+          return
+        }
+        openBubble('usage')
+      }, [bubble, phase, openBubble, closeBubble])
+
       const onCoreDown = (e) => {
         if (!dragOn || phase !== 'dock') return
         if (typeof e.button === 'number' && e.button !== 0) return
@@ -1613,24 +1817,9 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         if (!drag || drag.id !== e.pointerId) return
         dragRef.current = null
         setDragging(false)
-        /* 只是点了一下、没拖动：不写入坐标，眼徽继续跟着会话区布局走；
-           顺便把这一下让给底下的按钮，免得拖拽模式下眼徽挡住别的控件 */
+        /* 只是点了一下、没拖动 → 展开/收起用量气泡 */
         if (!drag.moved) {
-          if (e.clientX > 0 && e.clientY > 0) {
-            const el = e.currentTarget
-            el.style.pointerEvents = 'none'
-            let under = null
-            try { under = document.elementFromPoint(e.clientX, e.clientY) } catch {}
-            el.style.pointerEvents = ''
-            if (under && under !== el && !el.contains(under)) {
-              try {
-                under.dispatchEvent(new MouseEvent('click', {
-                  bubbles: true, cancelable: true, view: window, button: 0,
-                  clientX: e.clientX, clientY: e.clientY,
-                }))
-              } catch {}
-            }
-          }
+          toggleBubble()
           return
         }
         const r = e.currentTarget.getBoundingClientRect()
@@ -1737,12 +1926,18 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
                 onPointerMove: onCoreMove,
                 onPointerUp: onCoreUp,
                 onPointerCancel: onCoreUp,
+                onClick: dragOn ? undefined : toggleBubble,
                 title: phase === 'dock'
-                  ? (dragOn ? '按住拖动：可以把我搬到屏幕任意位置' : 'Fairy · 设置 → Fairy')
+                  ? (dragOn ? '单击看用量，按住拖动位置' : '单击看用量 · Fairy 设置 → Fairy')
                   : undefined,
               },
               h(CoreGlyph, { phase, mood }),
             )
+          : null,
+
+        /* ———————————————————— 用量气泡 ———————————————————— */
+        bubble
+          ? h(BubbleCard, { key: bubble.mode, data: bubble })
           : null,
 
         /* ———————————————————— */
@@ -1777,8 +1972,9 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
      * 挂载
      * ------------------------------------------------------------------ */
     return {
-      inject: ['slots'],
+      inject: ['slots', 'remote', 'locale'],
       apply(ctx) {
+        runtime.ctx = ctx
         const guard = (label, fn) => {
           try {
             return fn()

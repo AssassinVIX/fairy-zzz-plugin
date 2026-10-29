@@ -1,9 +1,11 @@
-import { createReadStream, existsSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createReadStream, existsSync, openSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { mkdir, stat } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { extname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { homedir } from 'node:os'
+import zlib from 'node:zlib'
 
 /**
  * Fairy Ⅲ · H.D.D Skin — Host half.
@@ -344,6 +346,167 @@ function cleanText(raw) {
     .slice(0, MAX_CHARS)
 }
 
+/* ———————————————— 用量与花费 ————————————————
+   本机会话日志（~/.dsh/sessions/<项目>/<会话>/session.v4.jsonl.zstd）是多帧
+   zstd 拼接，逐帧解压后每行一个事件；assistant/message 事件带 data.usage：
+   { inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, totalTokens }。 */
+const SESSIONS_ROOT = join(homedir(), '.dsh', 'sessions')
+
+/* DeepSeek 官方价目（元 / 百万 token），下标 0 = 空闲时段，1 = 高峰时段 */
+const PRICES = {
+  'deepseek-flash': { hit: [0.02, 0.04], miss: [1, 2], out: [4, 8] },
+  'deepseek-v4-pro': { hit: [0.15, 0.3], miss: [4.5, 9], out: [13.5, 27] },
+}
+const DEFAULT_PRICE = PRICES['deepseek-flash']
+
+/* 空闲时段 = 北京时间 00:30–08:30，其余为高峰 */
+function peakState(now = new Date()) {
+  const minutes = now.getHours() * 60 + now.getMinutes()
+  const offPeak = minutes >= 30 && minutes < 8 * 60 + 30
+  return {
+    offPeak,
+    label: offPeak ? '空闲时段' : '高峰时段',
+    window: '00:30–08:30 空闲',
+    next: offPeak ? '08:30 恢复高峰价' : '00:30 转空闲价',
+  }
+}
+
+const ZSTD_MAGIC = [0x28, 0xb5, 0x2f, 0xfd]
+const usageCache = new Map()
+
+function sessionFiles() {
+  const out = []
+  let projects = []
+  try {
+    projects = readdirSync(SESSIONS_ROOT, { withFileTypes: true })
+  } catch {
+    return out
+  }
+  for (const project of projects) {
+    if (!project.isDirectory()) continue
+    const dir = join(SESSIONS_ROOT, project.name)
+    let sessions = []
+    try {
+      sessions = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const session of sessions) {
+      if (!session.isDirectory()) continue
+      const file = join(dir, session.name, 'session.v4.jsonl.zstd')
+      if (existsSync(file)) out.push(file)
+    }
+  }
+  return out
+}
+
+/* 解一整个日志文件，只留用量事件，避免把工具输出全塞进内存 */
+function readUsageEvents(file) {
+  let st
+  try {
+    st = statSync(file)
+  } catch {
+    return []
+  }
+  const cached = usageCache.get(file)
+  if (cached && cached.mtimeMs === st.mtimeMs && cached.size === st.size) return cached.events
+  if (typeof zlib.zstdDecompressSync !== 'function') return []
+
+  const buf = readFileSync(file)
+  const starts = []
+  for (let i = 0; i + 4 <= buf.length; i++) {
+    if (buf[i] === ZSTD_MAGIC[0] && buf[i + 1] === ZSTD_MAGIC[1] && buf[i + 2] === ZSTD_MAGIC[2] && buf[i + 3] === ZSTD_MAGIC[3]) {
+      starts.push(i)
+    }
+  }
+  const events = []
+  for (let k = 0; k < starts.length; k++) {
+    const end = k + 1 < starts.length ? starts[k + 1] : buf.length
+    let text = ''
+    try {
+      text = zlib.zstdDecompressSync(buf.subarray(starts[k], end)).toString('utf8')
+    } catch {
+      continue
+    }
+    for (const line of text.split('\n')) {
+      if (!line) continue
+      let ev
+      try {
+        ev = JSON.parse(line)
+      } catch {
+        continue
+      }
+      if (ev?.type !== 'assistant/message') continue
+      const usage = ev?.data?.usage
+      const time = ev?.time
+      if (!usage || typeof time !== 'number') continue
+      events.push({
+        time,
+        turn: ev?.data?.turn,
+        model: ev?.data?.message?.source?.model || '',
+        input: Number(usage.inputTokens) || 0,
+        output: Number(usage.outputTokens) || 0,
+        hit: Number(usage.cacheReadTokens) || 0,
+        write: Number(usage.cacheWriteTokens) || 0,
+      })
+    }
+  }
+  usageCache.set(file, { mtimeMs: st.mtimeMs, size: st.size, events })
+  return events
+}
+
+function emptyBucket(extra) {
+  return { hit: 0, miss: 0, out: 0, cost: 0, calls: 0, ...extra }
+}
+
+function addToBucket(bucket, ev, priceIndex) {
+  const price = PRICES[ev.model] || DEFAULT_PRICE
+  const miss = ev.input + ev.write
+  bucket.hit += ev.hit
+  bucket.miss += miss
+  bucket.out += ev.output
+  bucket.calls += 1
+  bucket.cost += (ev.hit * price.hit[priceIndex] + miss * price.miss[priceIndex] + ev.output * price.out[priceIndex]) / 1e6
+}
+
+function collectUsage() {
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const peak = peakState(now)
+  const priceIndex = peak.offPeak ? 0 : 1
+
+  const today = emptyBucket()
+  let latest = null
+  for (const file of sessionFiles()) {
+    let st
+    try {
+      st = statSync(file)
+    } catch {
+      continue
+    }
+    if (st.mtimeMs < todayStart - 2 * 86400000) continue
+    const events = readUsageEvents(file)
+    if (latest === null || st.mtimeMs > latest.mtimeMs) latest = { file, mtimeMs: st.mtimeMs, events }
+    for (const ev of events) {
+      if (ev.time < todayStart) continue
+      addToBucket(today, ev, priceIndex)
+    }
+  }
+
+  let turn = null
+  if (latest && latest.events.length > 0) {
+    const last = latest.events[latest.events.length - 1]
+    if (typeof last.turn === 'number') {
+      turn = emptyBucket({ turn: last.turn })
+      for (const ev of latest.events) {
+        if (ev.turn === last.turn) addToBucket(turn, ev, priceIndex)
+      }
+    }
+  }
+
+  return { ok: true, now: now.getTime(), peak, today, turn }
+}
+
 export function apply(ctx) {
   const webServer = ctx.webServer
   if (!webServer) return
@@ -446,6 +609,21 @@ export function apply(ctx) {
           seen: moodSeen,
           mood: mood.running ? 'running' : 'idle',
         })
+      },
+    }),
+  )
+
+  ctx.effect(() =>
+    webServer.register({
+      kind: 'exact',
+      path: '/fairy-zzz/usage',
+      handler: async (req, res) => {
+        try {
+          const data = collectUsage()
+          sendJson(res, 200, data)
+        } catch (cause) {
+          sendJson(res, 500, { ok: false, error: String(cause?.message ?? cause) })
+        }
       },
     }),
   )
