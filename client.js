@@ -3,7 +3,7 @@ window.__ModuleLoader__.load({
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    const { useCallback, useEffect, useRef, useState } = React
+    const { useCallback, useEffect, useLayoutEffect, useRef, useState } = React
 
     const NS = 'fairy-zzz'
     const PKG = 'dsh-fairy-zzz'
@@ -608,7 +608,8 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
   position:fixed;
   z-index:9002;
   pointer-events:auto;
-  min-width:210px;
+  width:236px;
+  box-sizing:border-box;
   padding:12px 14px 11px;
   border-radius:14px;
   background:linear-gradient(160deg,rgba(12,26,70,.97),rgba(5,12,34,.97));
@@ -1592,11 +1593,24 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
 
 
     /* 气泡：usage 态给「余额 / 今日花费 / 峰谷」，turn 态只给「本轮花费 / 峰谷」 */
-    function BubbleCard({ data }) {
+    function BubbleCard({ data, onMeasure }) {
       const { mode, x, y, side, loading, usage, balance } = data
       const peak = usage && usage.peak
       const bucket = usage ? (mode === 'turn' ? usage.turn : usage.today) : null
       const rows = []
+
+      /* 把真实尺寸交给父层，翻面/夹边都按实际宽高算，不会盖到眼徽 */
+      const boxRef = useRef(null)
+      const lastSize = useRef({ w: 0, h: 0 })
+      useLayoutEffect(() => {
+        const el = boxRef.current
+        if (!el || typeof onMeasure !== 'function') return
+        const w = el.offsetWidth
+        const h = el.offsetHeight
+        if (w === lastSize.current.w && h === lastSize.current.h) return
+        lastSize.current = { w, h }
+        onMeasure({ w, h })
+      })
 
       /* 峰谷剩余时间：每秒走一格，换价瞬间归零 */
       const [nowTick, setNowTick] = useState(() => Date.now())
@@ -1653,6 +1667,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
       return h(
         'div',
         {
+          ref: boxRef,
           className: 'fz3-bubble',
           'data-mode': mode,
           'data-side': side || 'right',
@@ -1683,6 +1698,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
       /* 用量气泡：null = 收起；mode = 'usage'（余额·今日·峰谷）| 'turn'（本轮·峰谷） */
       const [bubble, setBubble] = useState(null)
       const bubbleTimer = useRef(null)
+      const bubbleSize = useRef({ w: 236, h: 162 })
 
       const closeBubble = useCallback(() => {
         if (bubbleTimer.current) {
@@ -1694,8 +1710,8 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
 
       /* 气泡挂点：右侧放不下（会越出右边界）就翻到眼徽左侧，垂直始终跟着眼徽中心 */
       const bubblePlace = useCallback((rect) => {
-        const W = 236
-        const H = 162
+        const W = bubbleSize.current.w || 236
+        const H = bubbleSize.current.h || 162
         const gap = 16
         const margin = 12
         const flip = rect.right + gap + W > window.innerWidth - margin
@@ -1924,7 +1940,9 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
           const el = coreRef.current
           if (el) {
             const next = bubblePlace(el.getBoundingClientRect())
-            setBubble((prev) => (prev ? { ...prev, ...next } : prev))
+            setBubble((prev) =>
+              prev && (prev.x !== next.x || prev.y !== next.y || prev.side !== next.side) ? { ...prev, ...next } : prev,
+            )
           }
         }
         e.preventDefault()
@@ -2057,7 +2075,20 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
 
         /* ———————————————————— 用量气泡 ———————————————————— */
         bubble
-          ? h(BubbleCard, { key: bubble.mode, data: bubble })
+          ? h(BubbleCard, {
+              key: bubble.mode,
+              data: bubble,
+              onMeasure: (size) => {
+                bubbleSize.current = size
+                /* 尺寸一变立刻重算一次挂点，避免首帧用旧宽高定位 */
+                const el = coreRef.current
+                if (!el) return
+                const next = bubblePlace(el.getBoundingClientRect())
+                setBubble((prev) =>
+                  prev && (prev.x !== next.x || prev.y !== next.y || prev.side !== next.side) ? { ...prev, ...next } : prev,
+                )
+              },
+            })
           : null,
 
         /* ———————————————————— */
