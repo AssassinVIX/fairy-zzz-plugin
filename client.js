@@ -428,6 +428,17 @@ window.__ModuleLoader__.load({
       return String(n)
     }
 
+    /* 峰谷剩余时长：3 小时 12 分 / 47 分 / 不到 1 分 */
+    function leftText(ms) {
+      const total = Math.max(0, Math.round(Math.max(0, ms) / 60_000))
+      const hours = Math.floor(total / 60)
+      const minutes = total % 60
+      if (hours && minutes) return hours + ' 小时 ' + minutes + ' 分'
+      if (hours) return hours + ' 小时'
+      if (minutes) return minutes + ' 分'
+      return '不到 1 分'
+    }
+
     /* ------------------------------------------------------------------ *
      * 样式
      * ------------------------------------------------------------------ */
@@ -1552,6 +1563,16 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
       const bucket = usage ? (mode === 'turn' ? usage.turn : usage.today) : null
       const rows = []
 
+      /* 峰谷剩余时间：每秒走一格，换价瞬间归零 */
+      const [nowTick, setNowTick] = useState(() => Date.now())
+      const nextAt = peak && peak.nextAt ? peak.nextAt : 0
+      useEffect(() => {
+        if (!nextAt) return undefined
+        setNowTick(Date.now())
+        const timer = setInterval(() => setNowTick(Date.now()), 1000)
+        return () => clearInterval(timer)
+      }, [nextAt])
+
       if (mode === 'usage') {
         rows.push(['余额', loading ? '…' : balance && balance.ok ? yuan(balance.amount) : '读取失败'])
         rows.push(['今日花费', loading ? '…' : bucket ? yuan(bucket.cost) : '—'])
@@ -1566,7 +1587,17 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
           `${bucket.calls} 次请求 · ${tokensText(bucket.hit)} 命中 / ${tokensText(bucket.miss)} 未命中 / ${tokensText(bucket.out)} 输出`,
         )
       }
-      if (peak) detail.push(`${peak.window} · ${peak.next}`)
+      if (peak) {
+        const flip = peak.offPeak ? '高峰' : '空闲'
+        const left = nextAt - nowTick
+        detail.push(
+          nextAt
+            ? left > 0
+              ? `${peak.window} · ${leftText(left)}后转${flip}价`
+              : `${peak.window} · 换价时刻已到，点眼徽刷新`
+            : `${peak.window} · ${peak.next}`,
+        )
+      }
       if (mode === 'usage' && !loading && balance && !balance.ok && balance.reason) detail.push(balance.reason)
 
       return h(

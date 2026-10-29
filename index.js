@@ -363,12 +363,32 @@ const DEFAULT_PRICE = PRICES['deepseek-flash']
 function peakState(now = new Date()) {
   const minutes = now.getHours() * 60 + now.getMinutes()
   const offPeak = minutes >= 30 && minutes < 8 * 60 + 30
+  /* 下一个换价时刻：空闲段结束在 08:30，高峰段结束在次日 00:30（00:00–00:30 仍算高峰） */
+  const boundaryMinute = offPeak ? 8 * 60 + 30 : minutes < 30 ? 30 : 24 * 60 + 30
+  const remainMs = Math.max(0, (boundaryMinute - minutes) * 60_000 - now.getSeconds() * 1_000 - now.getMilliseconds())
+  const next = new Date(now.getTime() + remainMs)
+  const hh = String(next.getHours()).padStart(2, '0')
+  const mm = String(next.getMinutes()).padStart(2, '0')
   return {
     offPeak,
     label: offPeak ? '空闲时段' : '高峰时段',
     window: '00:30–08:30 空闲',
-    next: offPeak ? '08:30 恢复高峰价' : '00:30 转空闲价',
+    remainMs,
+    nextAt: next.getTime(),
+    nextClock: hh + ':' + mm,
+    next: formatLeft(remainMs) + '后转' + (offPeak ? '高峰' : '空闲') + '价',
   }
+}
+
+/* 剩余时长：3 小时 12 分 / 47 分 / 不到 1 分 */
+function formatLeft(ms) {
+  const total = Math.max(0, Math.round(ms / 60_000))
+  const hours = Math.floor(total / 60)
+  const minutes = total % 60
+  if (hours && minutes) return hours + ' 小时 ' + minutes + ' 分'
+  if (hours) return hours + ' 小时'
+  if (minutes) return minutes + ' 分'
+  return '不到 1 分'
 }
 
 const ZSTD_MAGIC = [0x28, 0xb5, 0x2f, 0xfd]
