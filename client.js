@@ -1799,7 +1799,7 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
 
 
     /* 气泡：usage 态给「余额 / 今日花费 / 峰谷」，turn 态只给「本轮花费 / 峰谷」 */
-    function BubbleCard({ data, onMeasure }) {
+    function BubbleCard({ data, onMeasure, onFlip }) {
       const { mode, x, y, side, loading, usage, balance } = data
       const peak = usage && usage.peak
       const bucket = usage ? (mode === 'turn' ? usage.turn : usage.today) : null
@@ -1828,13 +1828,22 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
         return () => clearInterval(timer)
       }, [nextAt])
 
+      const left = nextAt ? nextAt - nowTick : 0
+
+      /* 倒计时归零 = 刚换了价：让父层重新拉一次，峰谷标签与花费跟着翻面 */
+      const flipFired = useRef(0)
+      useEffect(() => {
+        if (!nextAt || left > 0 || flipFired.current === nextAt) return
+        flipFired.current = nextAt
+        if (typeof onFlip === 'function') onFlip(mode)
+      }, [left, nextAt, mode, onFlip])
+
       if (mode === 'usage') {
         rows.push(['余额', loading ? '…' : balance && balance.ok ? yuan(balance.amount) : '读取失败'])
         rows.push(['今日花费', loading ? '…' : bucket ? yuan(bucket.cost) : '—'])
       } else {
         rows.push(['本轮花费', loading ? '…' : bucket ? yuan(bucket.cost) : '—'])
       }
-      const left = nextAt ? nextAt - nowTick : 0
       const tone = peak && peak.offPeak ? 'valley' : 'peak'
       rows.push([
         '峰谷',
@@ -1864,7 +1873,7 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
           nextAt
             ? left > 0
               ? `${peak.window} · 后转${flip}价`
-              : `${peak.window} · 换价时刻已到，点眼徽刷新`
+              : `${peak.window} · 换价时刻已到，正在刷新`
             : `${peak.window} · ${peak.next}`,
         )
       }
@@ -2320,6 +2329,10 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
           ? h(BubbleCard, {
               key: bubble.mode,
               data: bubble,
+              /* 换价瞬间：重新拉一次用量，气泡里的峰谷立刻翻面 */
+              onFlip: (mode) => {
+                openBubble(mode)
+              },
               onMeasure: (size) => {
                 bubbleSize.current = size
                 /* 尺寸一变立刻重算一次挂点，避免首帧用旧宽高定位 */

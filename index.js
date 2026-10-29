@@ -359,22 +359,72 @@ const PRICES = {
 }
 const DEFAULT_PRICE = PRICES['deepseek-flash']
 
-/* 空闲时段 = 北京时间 00:30–08:30，其余为高峰 */
+/* 高峰：北京时间 周一至周五 09:00–12:00、14:00–18:00（不含中国法定节假日）；
+   其余时间——含周末、法定节假日全天——一律空闲，价格是高峰的一半。
+   规则出处：https://api-docs.deepseek.com/zh-cn/quick_start/pricing */
+const BJ_OFFSET = 8 * 60 * 60 * 1000
+const PEAK_RANGES = [[9 * 60, 12 * 60], [14 * 60, 18 * 60]]
+
+/* 2026 年法定节假日（国办发明电〔2025〕，首尾都算）。新年份要补一行，缺年份时按纯工作日算。 */
+const HOLIDAY_RANGES = [
+  ['2026-01-01', '2026-01-03'], // 元旦
+  ['2026-02-15', '2026-02-23'], // 春节
+  ['2026-04-04', '2026-04-06'], // 清明节
+  ['2026-05-01', '2026-05-05'], // 劳动节
+  ['2026-06-19', '2026-06-21'], // 端午节
+  ['2026-09-25', '2026-09-27'], // 中秋节
+  ['2026-10-01', '2026-10-07'], // 国庆节
+]
+const HOLIDAY_DAYS = new Set()
+for (const [from, to] of HOLIDAY_RANGES) {
+  for (let t = Date.parse(from + 'T00:00:00Z'); t <= Date.parse(to + 'T00:00:00Z'); t += 86_400_000) {
+    HOLIDAY_DAYS.add(new Date(t).toISOString().slice(0, 10))
+  }
+}
+
+/* 把时刻换算成北京时间的日期 / 星期 / 当天分钟数 */
+function beijingStamp(ms) {
+  const d = new Date(ms + BJ_OFFSET)
+  return {
+    date: d.toISOString().slice(0, 10),
+    weekday: d.getUTCDay(),
+    minute: d.getUTCHours() * 60 + d.getUTCMinutes(),
+  }
+}
+
+function isPeakAt(ms) {
+  const s = beijingStamp(ms)
+  if (s.weekday === 0 || s.weekday === 6) return false
+  if (HOLIDAY_DAYS.has(s.date)) return false
+  return PEAK_RANGES.some(([from, to]) => s.minute >= from && s.minute < to)
+}
+
+/* 下一次换价：逐分钟找第一个状态翻转的整分（最长间隔是周五 18:00 → 周一 09:00，7 天足够） */
+function nextPeakFlip(ms) {
+  const current = isPeakAt(ms)
+  let t = Math.ceil(ms / 60_000) * 60_000
+  const limit = t + 7 * 86_400_000
+  while (t < limit) {
+    t += 60_000
+    if (isPeakAt(t) !== current) return t
+  }
+  return t
+}
+
 function peakState(now = new Date()) {
-  const minutes = now.getHours() * 60 + now.getMinutes()
-  const offPeak = minutes >= 30 && minutes < 8 * 60 + 30
-  /* 下一个换价时刻：空闲段结束在 08:30，高峰段结束在次日 00:30（00:00–00:30 仍算高峰） */
-  const boundaryMinute = offPeak ? 8 * 60 + 30 : minutes < 30 ? 30 : 24 * 60 + 30
-  const remainMs = Math.max(0, (boundaryMinute - minutes) * 60_000 - now.getSeconds() * 1_000 - now.getMilliseconds())
-  const next = new Date(now.getTime() + remainMs)
-  const hh = String(next.getHours()).padStart(2, '0')
-  const mm = String(next.getMinutes()).padStart(2, '0')
+  const time = now.getTime()
+  const offPeak = !isPeakAt(time)
+  const flipAt = nextPeakFlip(time)
+  const remainMs = Math.max(0, flipAt - time)
+  const next = new Date(flipAt + BJ_OFFSET)
+  const hh = String(next.getUTCHours()).padStart(2, '0')
+  const mm = String(next.getUTCMinutes()).padStart(2, '0')
   return {
     offPeak,
     label: offPeak ? '空闲时段' : '高峰时段',
-    window: '00:30–08:30 空闲',
+    window: '工作日 09–12、14–18 高峰',
     remainMs,
-    nextAt: next.getTime(),
+    nextAt: flipAt,
     nextClock: hh + ':' + mm,
     next: formatLeft(remainMs) + '后转' + (offPeak ? '高峰' : '空闲') + '价',
   }
