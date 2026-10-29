@@ -351,8 +351,29 @@ window.__ModuleLoader__.load({
       '--dsw-specific-bubble': 'rgba(22,26,42,0.92)',
       '--dsw-alias-markdown-code-block': 'rgba(8,9,20,0.94)',
     }
+    /* 浅色面：背景压在 #eef3fc 上，正文与次要文字各降一档对比，状态色保持可辨识 */
+    const lightTokens = {
+      '--dsw-alias-bg-base': 'rgba(247,250,255,0.92)',
+      '--dsw-alias-bg-layer-1': 'rgba(255,255,255,0.94)',
+      '--dsw-alias-bg-layer-2': 'rgba(255,255,255,0.97)',
+      '--dsw-alias-bg-overlay': 'rgba(255,255,255,0.99)',
+      '--dsw-alias-border-l1': 'rgba(60,90,220,0.18)',
+      '--dsw-alias-border-l2': 'rgba(120,140,200,0.32)',
+      '--dsw-alias-brand-primary': '#2f55e8',
+      '--dsw-alias-label-primary': '#141a2e',
+      '--dsw-alias-label-secondary': '#59648a',
+      '--dsw-alias-state-error-primary': '#d42a4c',
+      '--dsw-alias-state-idle-primary': '#818ab0',
+      '--dsw-alias-state-success-primary': '#0d9f6e',
+      '--dsw-alias-state-warn-primary': '#b1700a',
+      '--dsw-specific-sidebar-fill': 'rgba(243,247,255,0.94)',
+      '--dsw-specific-bubble': 'rgba(255,255,255,0.96)',
+      '--dsw-alias-markdown-code-block': 'rgba(238,243,255,0.96)',
+    }
     const TOKENS = {}
-    for (const key of Object.keys(baseTokens)) TOKENS[key] = { light: baseTokens[key], dark: baseTokens[key] }
+    for (const key of Object.keys(baseTokens)) {
+      TOKENS[key] = { dark: baseTokens[key], light: lightTokens[key] || baseTokens[key] }
+    }
 
     /* ------------------------------------------------------------------ *
      * 用量气泡的数据源
@@ -473,6 +494,46 @@ window.__ModuleLoader__.load({
   color-scheme:dark;
 }
 html,body{background:#080a12!important;color-scheme:dark;}
+/* 浅色主题：DSH 外观切到 light 时，插件把 data-fz3-theme 写到 <html> 上 */
+:root[data-fz3-theme="light"]{
+  --fz3-ink:#eef3ff;
+  --fz3-text:#151b2f;
+  --fz3-mute:#5c6684;
+  --fz3-line:rgba(60,90,200,.18);
+  --fz3-cyan:#2f62e0;
+  color-scheme:light;
+}
+html[data-fz3-theme="light"],html[data-fz3-theme="light"] body{background:#eef3fc!important;color-scheme:light;color:var(--fz3-text);}
+html[data-fz3-theme="light"] body::before{
+  background:
+    radial-gradient(42% 34% at 88% -6%,rgba(120,150,255,.34),transparent 68%),
+    radial-gradient(34% 30% at 2% 4%,rgba(90,130,255,.24),transparent 70%),
+    radial-gradient(48% 40% at 50% 118%,rgba(150,120,255,.20),transparent 66%),
+    repeating-linear-gradient(-24deg,rgba(70,100,200,.05) 0 1px,transparent 1px 132px),
+    linear-gradient(160deg,#f8fbff 0%,#eaf0ff 52%,#f3f6ff 100%);
+}
+html[data-fz3-theme="light"] body::after{
+  background-image:
+    linear-gradient(rgba(70,110,220,.08) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(70,110,220,.08) 1px,transparent 1px),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.35) 0 1px,transparent 1px 3px),
+    radial-gradient(120% 86% at 50% -6%,transparent 38%,rgba(186,203,255,.55) 100%);
+}
+html[data-fz3-theme="light"] .fz3-bubble{
+  background:linear-gradient(160deg,rgba(255,255,255,.98),rgba(238,244,255,.98));
+  border-color:rgba(70,110,230,.24);
+  box-shadow:0 18px 42px rgba(50,80,160,.16),0 0 0 1px rgba(120,160,255,.16) inset;
+  color:var(--fz3-text);
+}
+html[data-fz3-theme="light"] .fz3-bubble::after{background:rgba(255,255,255,.98);border-color:rgba(70,110,230,.24);}
+html[data-fz3-theme="light"] .fz3-bubble-head{color:#2f5fe0}
+html[data-fz3-theme="light"] .fz3-bubble[data-mode="turn"] .fz3-bubble-head{color:#a76a06}
+html[data-fz3-theme="light"] .fz3-bubble-v{color:#111a33}
+html[data-fz3-theme="light"] .fz3-bubble-sub{color:rgba(72,86,130,.9)}
+html[data-fz3-theme="light"] .fz3-peak-clock{color:#128a4a;border-bottom-color:rgba(18,138,74,.45)}
+html[data-fz3-theme="light"] .fz3-peak-clock[data-tone="peak"]{color:#b56a00;border-bottom-color:rgba(181,106,0,.45)}
+html[data-fz3-theme="light"] .fz3-peak-badge{box-shadow:none}
+html[data-fz3-theme="light"] ::selection{background:rgba(61,91,240,.22);color:#0d1424}
 body{font-family:var(--fz3-font)!important;}
 body::before{
   content:"";position:fixed;inset:-12%;z-index:-2;pointer-events:none;
@@ -2164,6 +2225,59 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         guard('tokens', () => {
           const theme = ctx.get && ctx.get('theme')
           if (theme && typeof theme.overrideTokens === 'function') theme.overrideTokens(PKG, TOKENS)
+        })
+
+        guard('theme-watch', () => {
+          const theme = ctx.get && ctx.get('theme')
+          if (!theme || typeof document === 'undefined') return
+          const read = () => {
+            try {
+              const snap = typeof theme.getTheme === 'function' ? theme.getTheme() : null
+              const id = snap && snap.active ? snap.active.id : ''
+              return id === 'light' ? 'light' : 'dark'
+            } catch {
+              return 'dark'
+            }
+          }
+          const apply = () => {
+            const mode = read()
+            const root = document.documentElement
+            if (root.dataset.fz3Theme !== mode) root.dataset.fz3Theme = mode
+          }
+          apply()
+          let off = null
+          if (typeof ctx.on === 'function') {
+            try {
+              off = ctx.on('theme/change', apply)
+            } catch {
+              off = null
+            }
+          }
+          /* 兜底：宿主没给 theme/change 时，跟着 <html> 的 color-scheme 与系统偏好走 */
+          let media = null
+          let observer = null
+          if (off === null) {
+            try {
+              media = window.matchMedia('(prefers-color-scheme: light)')
+              media.addEventListener('change', apply)
+            } catch {
+              media = null
+            }
+            try {
+              observer = new MutationObserver(apply)
+              observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-theme'] })
+            } catch {
+              observer = null
+            }
+          }
+          if (typeof ctx.effect === 'function') {
+            ctx.effect(() => () => {
+              try { off && off() } catch {}
+              try { media && media.removeEventListener('change', apply) } catch {}
+              try { observer && observer.disconnect() } catch {}
+              try { delete document.documentElement.dataset.fz3Theme } catch {}
+            })
+          }
         })
 
         const mount = (key, spec, component) => {

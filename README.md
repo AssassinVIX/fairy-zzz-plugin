@@ -24,7 +24,7 @@
   - 待机随机「花屏」：把整只眼切成 2–4 条横带横向错位；
   - `done` 眼睑轻扫一下。
 - **品牌位替换**：隐藏官方 SVG 字标，在原位置叠上 Fairy 眼徽 + 斜体 `Fairy` 字标，位置由量测官方元素得到，随窗口自适应。
-- **主题**：深蓝玻璃 + 青蓝霓虹 token、网格与扫描线壁纸、H.D.D 风滚动条与焦点光。
+- **主题**：深蓝玻璃 + 青蓝霓虹 token、网格与扫描线壁纸、H.D.D 风滚动条与焦点光；跟随 DSH 的外观设置（设置 → 通用 → 外观），切到浅色时自动换成浅底深字的同一套配色。
 - **语音**：开场问候是预录 wav（不依赖引擎）；后续回复可自动朗读或点按钮朗读，走本地 GPT-SoVITS（CPU 推理）。
 - **设置面板**：DSH 的「设置 → Fairy」里集中管理朗读开关、引擎状态、引擎目录、试听/重播/测试。
 
@@ -217,7 +217,7 @@ It turns the DSH web interface into Fairy's H.D.D terminal: a full-screen boot a
   - random idle "glitch" — the whole eye is sliced into 2–4 horizontal bands and shifted sideways;
   - `done` — a quick eyelid sweep.
 - **Brand slot replacement** — the official SVG wordmark is hidden and the Fairy eye badge plus an italic `Fairy` wordmark are overlaid in the same spot, positioned from measurements of the official element so it stays responsive.
-- **Theme** — deep-blue glass with cyan neon tokens, grid and scanline wallpaper, an H.D.D-style scrollbar and focus glow.
+- **Theme** — deep-blue glass with cyan neon tokens, grid and scanline wallpaper, an H.D.D-style scrollbar and focus glow. It follows the DSH appearance setting (Settings → General → Appearance) and switches to the light-background/dark-text variant when you pick light.
 - **Voice** — the opening greeting is a pre-recorded wav and needs no engine; later replies can be read aloud automatically or with a per-message button through a local GPT-SoVITS (CPU inference).
 - **Settings panel** — DSH's *Settings → Fairy* manages the read-aloud switch, engine status, engine directory, sampling, replay and tests.
 
