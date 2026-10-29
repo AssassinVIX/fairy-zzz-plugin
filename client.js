@@ -391,12 +391,23 @@ window.__ModuleLoader__.load({
         })
         if (!res) return { ok: false, reason: '余额接口没有返回' }
         if (!res.ok) return { ok: false, reason: '余额读取被拒绝：' + String(res.error?.code || res.error?.message || '未登录') }
-        const list = Array.isArray(res.value) ? res.value : []
-        const wallet = list.find((item) => (item?.currency || 'CNY') === 'CNY') || list[0]
-        if (!wallet) return { ok: false, reason: '账户里没有钱包' }
-        const amount = Number(wallet.balance)
-        if (!Number.isFinite(amount)) return { ok: false, reason: '余额格式异常' }
-        return { ok: true, amount, currency: wallet.currency || 'CNY' }
+        /* value 可能是钱包数组，也可能被包成 { wallets } / { value } / { bonusWallets } */
+        const raw = res.value
+        const pick = (list) => (Array.isArray(list) ? list.filter((item) => item && Number.isFinite(Number(item.balance))) : [])
+        let wallets = pick(raw)
+        if (!wallets.length && raw && !Array.isArray(raw)) {
+          wallets = pick(raw.wallets)
+          if (!wallets.length) wallets = pick(raw.value)
+          if (!wallets.length) wallets = pick(raw.bonusWallets)
+        }
+        if (!wallets.length) {
+          const shape = raw === null ? 'null' : Array.isArray(raw) ? 'array(' + raw.length + ')' : raw && typeof raw === 'object' ? 'object(' + Object.keys(raw).join(',') + ')' : typeof raw
+          return { ok: false, reason: '账户里没有钱包（' + shape + '）' }
+        }
+        const cny = wallets.filter((item) => (item.currency || 'CNY') === 'CNY')
+        const use = cny.length ? cny : wallets
+        const amount = use.reduce((sum, item) => sum + Number(item.balance), 0)
+        return { ok: true, amount, currency: use[0].currency || 'CNY' }
       } catch (cause) {
         return { ok: false, reason: '余额请求失败：' + (cause && cause.message ? cause.message : cause) }
       }
