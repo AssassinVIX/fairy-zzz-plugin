@@ -11,6 +11,8 @@ window.__ModuleLoader__.load({
     const SEEN_KEY = 'fairy.zzz.seen'
     const DRAG_KEY = 'fairy.zzz.drag'
     const POS_KEY = 'fairy.zzz.dock-pos'
+    const EYE_KEY = 'fairy.zzz.eye-hidden'
+    const THEME_KEY = 'fairy.zzz.theme-mode'
     const greetSlot = () => {
       const hh = new Date().getHours()
       if (hh >= 5 && hh < 11) return 'morning'
@@ -490,8 +492,9 @@ window.__ModuleLoader__.load({
   --fz3-mute:#9aa4d6;
   --fz3-line:rgba(110,130,255,.2);
   --fz3-font:"Bahnschrift","DIN Alternate","HarmonyOS Sans SC","Microsoft YaHei UI","PingFang SC","Noto Sans SC",system-ui,sans-serif;
-  --fz3-dock-x:25vw;
-  --fz3-dock-y:52vh;
+  /* 默认停靠右下角、输入框上方：绝不停在屏幕正中间压住正文 */
+  --fz3-dock-x:calc(100vw - 88px);
+  --fz3-dock-y:calc(100vh - 196px);
   --fz3-dock-size:128px;
   /* 自适应：问候页的眼睛直径 / 眼睛中心高度 / 眼睛到文案的间距，全部随视口缩放 */
   --fz3-eye:clamp(132px,min(32vmin,34vh),330px);
@@ -604,8 +607,13 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
   background-image:linear-gradient(rgba(120,150,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(120,150,255,.05) 1px,transparent 1px);
   background-size:48px 48px,48px 48px;mask-image:radial-gradient(120% 120% at 50% 30%,#000 40%,transparent 100%)}
 .fz3-layer{position:fixed;inset:0;z-index:9000;pointer-events:none;font-family:var(--fz3-font);color:var(--fz3-text);-webkit-font-smoothing:antialiased}
-.fz3-screen{position:absolute;inset:0;pointer-events:auto;transition:opacity 1.25s ease,filter 1.25s ease;overflow:hidden;background:#02050d}
-.fz3-layer[data-phase="dock"] .fz3-screen{opacity:0;pointer-events:none;filter:blur(7px)}
+.fz3-screen{position:absolute;inset:0;pointer-events:none;transition:opacity 1.25s ease,filter 1.25s ease;overflow:hidden;background:#02050d}
+/* 只有在开机 / 问候阶段这一层才接收点击；其余时候整层放行，
+   否则宿主的弹窗、插件面板、命令面板会被这层透明遮罩吞掉点击 */
+.fz3-layer[data-phase="boot"] .fz3-screen,
+.fz3-layer[data-phase="greet"] .fz3-screen{pointer-events:auto}
+.fz3-tap{pointer-events:auto;cursor:pointer}
+.fz3-layer[data-phase="dock"] .fz3-screen{opacity:0;filter:blur(7px)}
 .fz3-bg{position:absolute;inset:0;background:
   radial-gradient(56% 52% at 50% 44%,rgba(26,38,110,.5),transparent 74%),
   radial-gradient(42% 38% at 84% 6%,rgba(88,60,235,.26),transparent 72%),
@@ -795,7 +803,25 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
 .fz3-set-btn:hover:not(:disabled){background:rgba(87,232,255,.22);border-color:rgba(120,225,255,.6)}
 .fz3-set-btn:disabled{opacity:.4;cursor:default}
 .fz3-set-btn.is-ghost{background:rgba(255,255,255,.04);border-color:rgba(140,160,190,.24)}
+.fz3-set-seg{display:flex;gap:6px;flex:none}
+.fz3-set-segbtn{font:inherit;font-size:11.5px;padding:6px 11px;border-radius:8px;cursor:pointer;color:#a9b8d6;background:rgba(255,255,255,.04);border:1px solid rgba(140,160,190,.22);transition:all .16s ease}
+.fz3-set-segbtn[data-on="1"]{color:#04121f;background:linear-gradient(90deg,#8fb4ff,#57e8ff);border-color:rgba(120,225,255,.6)}
+html[data-fz3-theme="light"] .fz3-set-segbtn{color:#48566f;background:rgba(40,70,150,.05);border-color:rgba(70,110,190,.22)}
+html[data-fz3-theme="light"] .fz3-set-segbtn[data-on="1"]{color:#08132a;background:linear-gradient(90deg,#7fa6ff,#4fd2ee)}
 .fz3-set-note{font-size:11px;line-height:1.6;color:#7f92a9}
+/* 设置页在 DSH 浅色外观下是白底，深色字色必须跟着翻过来 */
+html[data-fz3-theme="light"] .fz3-set{color:#16213a}
+html[data-fz3-theme="light"] .fz3-set-name{color:#101a30}
+html[data-fz3-theme="light"] .fz3-set-sub,
+html[data-fz3-theme="light"] .fz3-set-desc,
+html[data-fz3-theme="light"] .fz3-set-note{color:rgba(62,80,118,.92)}
+html[data-fz3-theme="light"] .fz3-set-row{background:rgba(30,60,130,.045);border-color:rgba(70,110,190,.2)}
+html[data-fz3-theme="light"] .fz3-set-input{color:#12203c;background:#fff;border-color:rgba(70,110,190,.3)}
+html[data-fz3-theme="light"] .fz3-set-input::placeholder{color:rgba(90,110,150,.55)}
+html[data-fz3-theme="light"] .fz3-set-btn{color:#0f2140;background:rgba(70,140,255,.1);border-color:rgba(70,140,255,.38)}
+html[data-fz3-theme="light"] .fz3-set-btn.is-ghost{color:#26344f;background:rgba(30,60,130,.05);border-color:rgba(70,110,190,.24)}
+html[data-fz3-theme="light"] .fz3-set-switch{background:rgba(130,160,200,.3);border-color:rgba(90,120,180,.42)}
+html[data-fz3-theme="light"] .fz3-set-switch::after{background:#fff}
 
 /* ---------- 花屏（视频里的随机故障帧） ---------- */
 .fz3-glitch{position:absolute;inset:0;z-index:3;pointer-events:none;mix-blend-mode:screen;filter:saturate(1.18) contrast(1.06)}
@@ -1265,6 +1291,33 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
         setHasCustomPos(false)
         try { window.dispatchEvent(new CustomEvent('fz3:dock-reset')) } catch {}
       }
+      /* 眼徽显隐：隐藏后整层只剩背景装饰，不再有任何浮层压住界面 */
+      const [eyeHidden, setEyeHidden] = useState(() => readBool(EYE_KEY, false))
+      const toggleEye = () => {
+        const next = !eyeHidden
+        writeStored(EYE_KEY, next)
+        setEyeHidden(next)
+        try { window.dispatchEvent(new CustomEvent('fz3:eye-pref')) } catch {}
+      }
+      /* 外观：跟随 DSH / 强制深色 / 强制浅色 */
+      const [themeMode, setThemeMode] = useState(() => readStored(THEME_KEY, 'auto'))
+      const pickTheme = (mode) => {
+        writeStored(THEME_KEY, mode)
+        setThemeMode(mode)
+        try { window.dispatchEvent(new CustomEvent('fz3:theme-pref')) } catch {}
+      }
+      const seg = (mode, label) =>
+        h(
+          'button',
+          {
+            type: 'button',
+            className: 'fz3-set-segbtn',
+            'data-on': themeMode === mode ? '1' : '0',
+            'aria-pressed': themeMode === mode,
+            onClick: () => pickTheme(mode),
+          },
+          label,
+        )
       const loadVoiceHome = useCallback(() => {
         fetch('/fairy-zzz/voice-home', { cache: 'no-store' })
           .then((r) => (r.ok ? r.json() : null))
@@ -1395,6 +1448,48 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
             'aria-pressed': !!dragPref,
             onClick: toggleDrag,
           }),
+        ),
+        h(
+          'div',
+          { className: 'fz3-set-row' },
+          h(
+            'div',
+            null,
+            h('div', { className: 'fz3-set-label' }, '显示眼徽'),
+            h(
+              'div',
+              { className: 'fz3-set-desc' },
+              eyeHidden
+                ? '已隐藏：眼徽和用量气泡都不再出现，随时能在这里重新打开'
+                : '停在窗口右下角、输入框上方，可以拖着走，也可以随时隐藏',
+            ),
+          ),
+          h('button', {
+            type: 'button',
+            className: 'fz3-set-switch',
+            'data-on': eyeHidden ? '0' : '1',
+            'aria-pressed': !eyeHidden,
+            onClick: toggleEye,
+          }),
+        ),
+        h(
+          'div',
+          { className: 'fz3-set-row' },
+          h(
+            'div',
+            null,
+            h('div', { className: 'fz3-set-label' }, '外观'),
+            h(
+              'div',
+              { className: 'fz3-set-desc' },
+              themeMode === 'auto'
+                ? '跟随 DSH 外观；如果浅色下仍有看不清的字，可以直接强制深色'
+                : themeMode === 'dark'
+                  ? '已强制深色：无论 DSH 用哪种外观，皮肤都按深色渲染'
+                  : '已强制浅色：适合把 DSH 也切到浅色时使用',
+            ),
+          ),
+          h('div', { className: 'fz3-set-seg' }, seg('auto', '跟随'), seg('dark', '深色'), seg('light', '浅色')),
         ),
         h(
           'div',
@@ -1799,6 +1894,7 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
 
       /* 眼徽拖拽：开关与坐标都放 localStorage，设置页改开关时靠事件通知这里 */
       const [dragOn, setDragOn] = useState(() => readBool(DRAG_KEY, true))
+      const [eyeHidden, setEyeHidden] = useState(() => readBool(EYE_KEY, false))
       const [dragging, setDragging] = useState(false)
       const [customPos, setCustomPos] = useState(() => {
         const saved = readStored(POS_KEY, null)
@@ -1916,41 +2012,38 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
         return () => clearInterval(timer)
       }, [])
       useEffect(() => {
-        /* dock 定位：默认找到会话区（左侧最靠左的宽容器），把眼标钉在它的左缘中部，
-           与参考视频里「对话时靠在聊天区左边」的位置一致；找不到就退回 25vw / 52vh。
+        /* dock 定位：默认停在右下角、输入框上方（不压侧栏、不压消息流，也不挡左上角的主菜单）；
+           量到输入框就贴着它的上沿停，量不到就退回视口的右下安全内缩。
            主人自己拖过之后改用记住的坐标，不再自动测量。 */
         if (customPos) {
           applyPos(clampPos(customPos.x, customPos.y))
           return undefined
         }
+        if (eyeHidden) return undefined
         let tries = 0
         let timer = null
         const measure = () => {
-          let best = null
-          const vw = window.innerWidth
-          const all = document.querySelectorAll('div,main,section')
-          for (let i = 0; i < all.length; i += 1) {
-            const el = all[i]
-            const r = el.getBoundingClientRect()
-            if (r.width < 420 || r.height < 300) continue
-            if (r.left < 260 || r.left > vw * 0.5) continue
-            if (r.width > vw * 0.9) continue
-            if (!best || r.left < best.left) best = r
-          }
           const root = document.documentElement
-          if (best) {
-            const size = parseFloat(getComputedStyle(root).getPropertyValue('--fz3-dock-size')) || 128
-            let cx = Math.round(best.left + size / 2 - 2)
-            let cy = Math.round(best.top + best.height * 0.5)
-            if (cx < vw * 0.16 || cx > vw * 0.46) cx = Math.round(vw * 0.25)
-            if (cy < window.innerHeight * 0.22 || cy > window.innerHeight * 0.82) cy = Math.round(window.innerHeight * 0.52)
-            root.style.setProperty('--fz3-dock-x', cx + 'px')
-            root.style.setProperty('--fz3-dock-y', cy + 'px')
-            window.__fz3Dock = { cx: cx, cy: cy, left: Math.round(best.left), top: Math.round(best.top), w: Math.round(best.width), h: Math.round(best.height) }
-          } else if (typeof window !== 'undefined') {
-            window.__fz3Dock = { cx: null, cy: null }
+          const size = parseFloat(getComputedStyle(root).getPropertyValue('--fz3-dock-size')) || 128
+          const vw = window.innerWidth
+          const vh = window.innerHeight
+          /* 默认停在右下角、输入框上方；量到输入框就贴着它停，量不到就用视口右下角的安全内缩 */
+          let cx = Math.round(vw - size / 2 - 28)
+          let cy = Math.round(vh - size / 2 - 176)
+          let composerTop = null
+          const composer = document.querySelector('[class*="_composer"]')
+          if (composer) {
+            const r = composer.getBoundingClientRect()
+            if (r.width > 160 && r.top > vh * 0.25) {
+              composerTop = Math.round(r.top)
+              cy = Math.round(r.top - size / 2 - 12)
+            }
           }
-          return !!best
+          const pos = clampPos(cx, cy)
+          root.style.setProperty('--fz3-dock-x', pos.x + 'px')
+          root.style.setProperty('--fz3-dock-y', pos.y + 'px')
+          window.__fz3Dock = { cx: pos.x, cy: pos.y, composerTop: composerTop }
+          return composerTop !== null
         }
         const kick = () => {
           tries += 1
@@ -1960,7 +2053,7 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
         const onResize = () => setTimeout(kick, 260)
         window.addEventListener('resize', onResize)
         return () => { clearInterval(timer); window.removeEventListener('resize', onResize) }
-      }, [customPos, applyPos, clampPos])
+      }, [customPos, applyPos, clampPos, eyeHidden])
 
       /* 记住的位置也要跟着窗口缩放夹一下，别把眼标留在屏幕外 */
       useEffect(() => {
@@ -1973,19 +2066,23 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
       /* 设置页里的开关与「复位」通过自定义事件同步到这个图层 */
       useEffect(() => {
         const sync = () => setDragOn(readBool(DRAG_KEY, true))
+        const syncEye = () => setEyeHidden(readBool(EYE_KEY, false))
         const onReset = () => {
           try { localStorage.removeItem(POS_KEY) } catch {}
           setCustomPos(null)
           setDragging(false)
-          applyPos({ x: Math.round(window.innerWidth * 0.25), y: Math.round(window.innerHeight * 0.52) })
         }
         window.addEventListener('fz3:drag-pref', sync)
+        window.addEventListener('fz3:eye-pref', syncEye)
         window.addEventListener('fz3:dock-reset', onReset)
         window.addEventListener('storage', sync)
+        window.addEventListener('storage', syncEye)
         return () => {
           window.removeEventListener('fz3:drag-pref', sync)
+          window.removeEventListener('fz3:eye-pref', syncEye)
           window.removeEventListener('fz3:dock-reset', onReset)
           window.removeEventListener('storage', sync)
+          window.removeEventListener('storage', syncEye)
         }
       }, [])
 
@@ -2165,7 +2262,16 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
           h('div', { className: 'fz3-hero' }),
           phase === 'boot' ? h(BootStage, { onDone: toGreet }) : null,
           phase !== 'boot' && needTap
-            ? h('div', { className: 'fz3-copy-sub fz3-tap', style: { position: 'absolute', left: 0, right: 0, bottom: 'clamp(12px,5vh,44px)', textAlign: 'center' } }, t('greet.tap'))
+            ? h(
+                'div',
+                {
+                  className: 'fz3-copy-sub fz3-tap',
+                  role: 'button',
+                  onClick: retryVoice,
+                  style: { position: 'absolute', left: 0, right: 0, bottom: 'clamp(12px,5vh,44px)', textAlign: 'center' },
+                },
+                t('greet.tap'),
+              )
             : null,
           phase === 'greet' ? h('button', { type: 'button', className: 'fz3-skip2', onClick: toDock }, 'SKIP ▸') : null,
         ),
@@ -2185,7 +2291,7 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
           : null,
 
         /* ———————————————————— */
-        phase !== 'boot'
+        phase !== 'boot' && !eyeHidden
           ? h(
               'div',
               {
@@ -2206,7 +2312,7 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
           : null,
 
         /* ———————————————————— 用量气泡 ———————————————————— */
-        bubble
+        bubble && !eyeHidden
           ? h(BubbleCard, {
               key: bubble.mode,
               data: bubble,
@@ -2306,14 +2412,41 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
         guard('theme-watch', () => {
           const theme = ctx.get && ctx.get('theme')
           if (!theme || typeof document === 'undefined') return
+          const probeLight = () => {
+            /* 宿主没给出主题 id 时，量一次真实背景色的亮度：亮就是浅色 */
+            try {
+              const probe = document.createElement('div')
+              probe.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;background:var(--dsw-alias-bg-base,#080a12)'
+              document.body.appendChild(probe)
+              const color = getComputedStyle(probe).backgroundColor
+              probe.remove()
+              const m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i.exec(color)
+              if (m) {
+                const lum = 0.299 * Number(m[1]) + 0.587 * Number(m[2]) + 0.114 * Number(m[3])
+                return lum > 140
+              }
+            } catch {}
+            return null
+          }
           const read = () => {
+            /* 设置页可以强制浅色 / 深色；选「跟随」时才去问宿主 */
+            try {
+              const forced = readStored(THEME_KEY, 'auto')
+              if (forced === 'light' || forced === 'dark') return forced
+            } catch {}
             try {
               const snap = typeof theme.getTheme === 'function' ? theme.getTheme() : null
-              const id = snap && snap.active ? snap.active.id : ''
-              return id === 'light' ? 'light' : 'dark'
-            } catch {
-              return 'dark'
-            }
+              const id = snap && snap.active ? String(snap.active.id || '') : ''
+              if (id === 'light' || id === 'dark') return id
+            } catch {}
+            const byProbe = probeLight()
+            if (byProbe !== null) return byProbe ? 'light' : 'dark'
+            try {
+              const ds = document.documentElement.dataset
+              if (ds.theme === 'light' || ds.colorScheme === 'light') return 'light'
+              if (ds.theme === 'dark' || ds.colorScheme === 'dark') return 'dark'
+            } catch {}
+            return 'dark'
           }
           const apply = () => {
             const mode = read()
@@ -2321,6 +2454,7 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
             if (root.dataset.fz3Theme !== mode) root.dataset.fz3Theme = mode
           }
           apply()
+          try { window.addEventListener('fz3:theme-pref', apply) } catch {}
           let off = null
           if (typeof ctx.on === 'function') {
             try {
@@ -2329,26 +2463,34 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
               off = null
             }
           }
-          /* 兜底：宿主没给 theme/change 时，跟着 <html> 的 color-scheme 与系统偏好走 */
+          /* 兜底：宿主不给 theme/change 时，也跟着系统偏好与 <html> 的属性变化重算 */
           let media = null
           let observer = null
-          if (off === null) {
-            try {
-              media = window.matchMedia('(prefers-color-scheme: light)')
-              media.addEventListener('change', apply)
-            } catch {
-              media = null
-            }
-            try {
-              observer = new MutationObserver(apply)
-              observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-theme'] })
-            } catch {
-              observer = null
-            }
+          try {
+            media = window.matchMedia('(prefers-color-scheme: light)')
+            media.addEventListener('change', apply)
+          } catch {
+            media = null
+          }
+          let pending = 0
+          try {
+            /* 拖动眼徽会不停改 <html> 的内联样式，这里做一次 260ms 去抖，避免每次都量颜色 */
+            observer = new MutationObserver(() => {
+              if (pending) return
+              pending = window.setTimeout(() => {
+                pending = 0
+                apply()
+              }, 260)
+            })
+            observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-theme', 'data-color-scheme'] })
+          } catch {
+            observer = null
           }
           if (typeof ctx.effect === 'function') {
             ctx.effect(() => () => {
               try { off && off() } catch {}
+              try { window.removeEventListener('fz3:theme-pref', apply) } catch {}
+              try { pending && clearTimeout(pending) } catch {}
               try { media && media.removeEventListener('change', apply) } catch {}
               try { observer && observer.disconnect() } catch {}
               try { delete document.documentElement.dataset.fz3Theme } catch {}

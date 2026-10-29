@@ -93,13 +93,15 @@ powershell -ExecutionPolicy Bypass -File .\install-windows.ps1 -Uninstall  # 卸
 | 控件 | 说明 |
 | --- | --- |
 | 自动朗读回复 | 助手回答完成后自动念出来；关掉也可以单独点消息旁的朗读按钮 |
-| 拖动眼徽 | 默认开启：按住会话区左缘的眼标拖到屏幕任意位置，位置记在浏览器里；关掉则锁回会话区左缘 |
+| 拖动眼徽 | 默认开启：眼标默认停在右下角、输入框上方，按住可以拖到屏幕任意位置，位置记在浏览器里；关掉则锁回默认的右下角 |
+| 显示眼徽 | 关掉后眼徽与用量气泡一起消失，窗口右下角不再有任何浮层；随时可以在这一行重新打开 |
+| 外观 | `跟随` DSH 的浅色 / 深色；也可以强制 `深色` 或 `浅色`，用来避开某个外观下看不清的字 |
 | 语音引擎 | 引擎状态灯：绿=就绪，黄=启动中，灰=未运行 |
 | 语音引擎目录 | 输入引擎目录 → `保存`（写入 `<插件目录>/voice-home.txt`）、`检测`（只校验不保存）、`清除`（回到自动探测） |
 | 启动引擎 / 停止引擎 | 由宿主进程托管引擎的启停 |
 | 刷新状态 | 立即重新探测一次 |
 | 试听问候 / 重播开机动画 | 重放最新问候音频 / 重新走一遍开机 → 问好 → 收成眼徽 |
-| 眼标复位 | 忘掉拖动记下的坐标，把眼标放回会话区左缘的默认锚点 |
+| 眼标复位 | 忘掉拖动记下的坐标，把眼标放回右下角的默认锚点 |
 | 测试语音 / 停止 | 合成一句测试语音 / 停止当前播放 |
 
 ## 语音引擎（可选）
@@ -161,6 +163,7 @@ powershell -ExecutionPolicy Bypass -File .\install-windows.ps1 -Uninstall  # 卸
 - 桌面壳的窗口标题、菜单、侧栏条目文案属于应用本身，插件改不了。
 - 新建对话页的标题与徽章没有插槽可换，皮肤直接改写 DOM 文本，并用 900ms 的低频定时器兜底重刷；官方若把它们改成多节点或富文本结构，选择器要跟着调。
 - 与其它抢占左下/右下角落的插件（鲸鱼挂件、桌宠）同时开时观感会打架。
+- 语音只有仓库自带的一条问候；逐句朗读要自备 Fairy 语音包（见上面语音章节），引擎和权重都不在仓库里。
 - 语音引擎是可选外部依赖，仓库不含权重与引擎本体。
 
 ## 排错
@@ -275,13 +278,15 @@ The script finds your profile, copies the plugin into `node_modules\dsh-fairy-zz
 | Control | What it does |
 | --- | --- |
 | Read replies aloud | Speaks each assistant answer when it finishes; with it off you can still use the speaker button next to a message |
-| Draggable badge | On by default: hold the eye badge at the left edge of the conversation area and drag it anywhere on screen; the position is remembered. Off pins it back to the conversation area's left edge |
+| Draggable badge | On by default: the badge sits above the composer in the bottom-right corner and can be dragged anywhere on screen; the position is remembered. Off pins it back to that default corner |
+| Show badge | Off hides the badge and its usage bubble together, leaving no overlay in the bottom-right corner; turn it back on here at any time |
+| Appearance | `Auto` follows DSH's light/dark theme; force `Dark` or `Light` if text is hard to read in one of them |
 | Voice engine | Engine status light: green = ready, yellow = starting, grey = not running |
 | Engine directory | Type a directory → `Save` (writes `<plugin dir>/voice-home.txt`), `Detect` (validate without saving), `Clear` (back to auto-detection) |
 | Start / Stop engine | Host-managed engine start and stop |
 | Refresh status | Re-probe immediately |
 | Play greeting / Replay boot | Replay the latest greeting audio / run the boot → greeting → badge sequence again |
-| Reset badge | Forget the remembered drag position and snap the badge back to the conversation area's left edge |
+| Reset badge | Forget the remembered drag position and snap the badge back to its default bottom-right spot |
 | Test voice / Stop | Synthesize a test line / stop current playback |
 
 ## Voice engine (optional)
@@ -342,7 +347,7 @@ The images in `screenshots/` are not remote links: the boot frame is taken from 
 - The official wordmark is inline SVG with no replaceable text node, and `sidebar.brand.mark/name` are `single` slots that the first registrant keeps, so the skin hides the official wordmark and overlays its own at the same position instead of doing a real slot replacement. If the official DOM changes, the selectors may need updating.
 - The desktop shell's window title, menus and sidebar labels belong to the app itself; a plugin cannot change them.
 - Other plugins that claim the bottom-left/right corners (whale widget, desktop pet) may look cluttered when enabled together.
-- The voice engine is an optional external dependency; the repository ships neither weights nor the engine itself.
+- The voice engine is an optional external dependency; the repository ships neither weights nor the engine itself, and it contains just one pre-recorded greeting — speaking every reply needs your own Fairy voice pack.
 
 ## Troubleshooting
 
