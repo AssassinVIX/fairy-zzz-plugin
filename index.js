@@ -529,8 +529,10 @@ function emptyBucket(extra) {
   return { hit: 0, miss: 0, out: 0, cost: 0, calls: 0, ...extra }
 }
 
-function addToBucket(bucket, ev, priceIndex) {
+/* 每一笔都按它自己发生的那一刻计价：白天跑的算高峰价，夜里补跑的算空闲价 */
+function addToBucket(bucket, ev) {
   const price = PRICES[ev.model] || DEFAULT_PRICE
+  const priceIndex = isPeakAt(ev.time) ? 1 : 0
   const miss = ev.input + ev.write
   bucket.hit += ev.hit
   bucket.miss += miss
@@ -541,9 +543,9 @@ function addToBucket(bucket, ev, priceIndex) {
 
 function collectUsage() {
   const now = new Date()
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const stamp = beijingStamp(now.getTime())
+  const todayStart = Date.parse(stamp.date + 'T00:00:00+08:00')
   const peak = peakState(now)
-  const priceIndex = peak.offPeak ? 0 : 1
 
   const today = emptyBucket()
   let latest = null
@@ -559,7 +561,7 @@ function collectUsage() {
     if (latest === null || st.mtimeMs > latest.mtimeMs) latest = { file, mtimeMs: st.mtimeMs, events }
     for (const ev of events) {
       if (ev.time < todayStart) continue
-      addToBucket(today, ev, priceIndex)
+      addToBucket(today, ev)
     }
   }
 
@@ -569,7 +571,7 @@ function collectUsage() {
     if (typeof last.turn === 'number') {
       turn = emptyBucket({ turn: last.turn })
       for (const ev of latest.events) {
-        if (ev.turn === last.turn) addToBucket(turn, ev, priceIndex)
+        if (ev.turn === last.turn) addToBucket(turn, ev)
       }
     }
   }
