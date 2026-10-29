@@ -20,6 +20,12 @@ window.__ModuleLoader__.load({
       return 'night'
     }
     const GREETING = () => '/fairy-zzz/assets/voice/greet-' + greetSlot() + '.wav'
+    /* 新建对话页 hero 的官方文案没有插槽可换：按界面语言改写成 H.D.D 版本 */
+    const HERO_COPY = {
+      zh: { headline: '空洞深潜系统', badge: 'H.D.D Ⅲ' },
+      en: { headline: 'HOLLOW DEEP DIVE SYSTEM', badge: 'H.D.D III' },
+    }
+    const CJK_RE = /[\u3400-\u9fff]/
 
     /* Fairy 眼睛：Apache-2.0，改编自 Fairy-DSH（见 NOTICE-fairy-dsh.md） */
     const FAIRY_EYE_SVG = `<!-- SPDX-License-Identifier: Apache-2.0 Adapted from Fairy-DSH, Copyright 2026 Chengzhibense. Source commit d639887a386b0de6fef2e61c97dc268631854591: mascot-geometry.js / mascot-eye-svg.js (see ../NOTICE). MODIFIED for pi-fairy-animation: standalone SVG, padded canvas, named offline animation anchors, white outer halo in both themes, separate contrast edge; browser effects, states, scanlines and glitch clones removed. Generated PNGs and vector previews inherit this attribution; see ../NOTICE. --> <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="-1 -1 162 162"> <defs> <linearGradient id="outer-gradient" x1=".2" y1="0" x2=".8" y2="1"> <stop stop-color="#3145d6"/> <stop offset=".54" stop-color="#2233b2"/> <stop offset="1" stop-color="#2b3cbc"/> </linearGradient> <!-- One static radial field replaces separate halo strokes, avoiding alpha seams. --> <radialGradient id="sclera-halo-gradient" gradientUnits="userSpaceOnUse" cx="80" cy="80" r="56" color-interpolation="linearRGB"> <stop offset=".82" stop-color="#ffffff" stop-opacity="0"/> <stop offset=".864" stop-color="#ffffff" stop-opacity=".22"/> <stop offset=".875" stop-color="#ffffff" stop-opacity=".28"/> <stop offset=".89" stop-color="#ffffff" stop-opacity=".19"/> <stop offset=".91" stop-color="#ffffff" stop-opacity=".11"/> <stop offset=".94" stop-color="#ffffff" stop-opacity=".07"/> <stop offset=".96" stop-color="#ffffff" stop-opacity=".035"/> <stop offset="1" stop-color="#ffffff" stop-opacity="0"/> </radialGradient> <radialGradient id="outer-halo-gradient" gradientUnits="userSpaceOnUse" cx="80" cy="80" r="79" color-interpolation="linearRGB"> <stop offset=".80" stop-color="#ffffff" stop-opacity="0"/> <stop offset=".84" stop-color="#ffffff" stop-opacity=".10"/> <stop offset=".868" stop-color="#ffffff" stop-opacity=".28"/> <stop offset=".90" stop-color="#ffffff" stop-opacity=".18"/> <stop offset=".95" stop-color="#ffffff" stop-opacity=".06"/> <stop offset=".99" stop-color="#ffffff" stop-opacity=".02"/> <stop offset="1" stop-color="#ffffff" stop-opacity="0"/> </radialGradient> <radialGradient id="highlight-halo-gradient" gradientUnits="userSpaceOnUse" cx="98" cy="100.5" r="18" color-interpolation="linearRGB"> <stop offset=".53" stop-color="#f5f8fd" stop-opacity="0"/> <stop offset=".56" stop-color="#f5f8fd" stop-opacity=".16"/> <stop offset=".611" stop-color="#f5f8fd" stop-opacity=".43"/> <stop offset=".72" stop-color="#f5f8fd" stop-opacity=".19"/> <stop offset=".77" stop-color="#f5f8fd" stop-opacity=".12"/> <stop offset=".83" stop-color="#f5f8fd" stop-opacity=".055"/> <stop offset=".89" stop-color="#f5f8fd" stop-opacity=".02"/> <stop offset=".96" stop-color="#f5f8fd" stop-opacity=".004"/> <stop offset="1" stop-color="#f5f8fd" stop-opacity="0"/> </radialGradient> <clipPath id="fz3-lid-cover-clip"><circle cx="80" cy="80" r="56"/></clipPath> </defs> <!-- 79-unit halo within an 81-unit half-canvas: padding with near-original apparent disc size. --> <g id="fairy"> <circle id="outer-halo" cx="80" cy="80" r="79" fill="url(#outer-halo-gradient)"/> <!-- Only this supporting edge changes with theme; white rim and halo stay white. --> <circle id="contrast-edge" cx="80" cy="80" r="68" fill="none" stroke="#dceaff" stroke-width="1.8"/> <circle id="outer-disc" cx="80" cy="80" r="68" fill="url(#outer-gradient)" stroke="#f2fbff" stroke-width="1.2"/> <g id="corners" transform="rotate(0 80 80)" fill="#1f2573"> <circle cx="80" cy="80" r="51.75"/> <rect x="37" y="37" width="86" height="86" rx="2" transform="rotate(3 80 80)"/> </g> <g id="eye-anatomy"><g id="sclera" transform="translate(80 80) scale(1) translate(-80 -80)"> <circle cx="80" cy="80" r="48" fill="#eef0f5"/> <circle id="sclera-halo" cx="80" cy="80" r="56" fill="url(#sclera-halo-gradient)"/> <circle cx="80" cy="80" r="48" fill="none" stroke="#ffffff" stroke-width=".8" stroke-opacity=".16"/> </g> <g id="iris-outer" transform="translate(80 80) scale(1) translate(-80 -80)"> <circle cx="80" cy="80" r="33" fill="#9daee0"/> </g> <g id="iris-blue" transform="translate(80 80) scale(1) translate(-80 -80)"> <circle cx="80" cy="80" r="24.15" fill="#eef0f5"/> <circle cx="80" cy="80" r="23.5" fill="#2f74c9"/> </g> <g id="pupil" transform="translate(80 80) scale(1) translate(-80 -80)"> <circle cx="80" cy="80" r="16.6" fill="none" stroke="#f5f8fd" stroke-width=".1"/> <circle cx="80" cy="80" r="16" fill="#2e2f78"/> </g> <!-- Same phase as blue iris, but painted last (above pupil), as in upstream. --> <g id="highlight" transform="translate(80 80) scale(1) translate(-80 -80)"> <circle id="highlight-halo" cx="98" cy="100.5" r="18" fill="url(#highlight-halo-gradient)"/> <circle id="catchlight-lower-right" cx="98" cy="100.5" r="11" fill="#f5f8fd"/> </g> </g> <g id="fz3-lid-cover" clip-path="url(#fz3-lid-cover-clip)"><path class="fz3-lid-shape" d="M20 60 Q80 90 140 60 V-40 H20 Z" fill="#1f2573"/></g> </g> </svg> `
@@ -998,6 +1004,17 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
   font-family:"Palatino Linotype","Songti SC",Georgia,serif;font-style:italic}
 .fz3-sb-text i{font-style:normal;font-size:8.5px;letter-spacing:.16em;color:rgba(150,168,220,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+/* 新建对话页的 hero：官方 SVG 鱼标换成 Fairy 眼徽（conversation.hero.brand.mark 插槽），
+   标题与「预览版」徽章没有插槽，文本由下面 FairySkin 里的定时 effect 改写，这里只管尺寸与光效。 */
+[class*="_fishHitbox"]>svg{display:none!important}
+.fz3-hero-mark{display:inline-flex;align-items:center;justify-content:center;flex:none;width:34px;height:34px;
+  filter:drop-shadow(0 0 10px rgba(80,140,255,.5));animation:fz3-hero-float 6.4s ease-in-out infinite}
+.fz3-hero-mark svg{width:100%;height:100%;display:block;overflow:visible}
+.fz3-hero-mark #fz3-lid-cover{display:none!important}
+@keyframes fz3-hero-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+[class*="_headline"] [class*="_titleGroup"]>span:first-child{letter-spacing:.06em;text-shadow:0 0 20px rgba(87,232,255,.42)}
+html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:first-child{text-shadow:0 0 14px rgba(70,110,230,.3)}
+
 .fz3-wave{position:fixed;right:24px;bottom:118px;width:104px;display:flex;flex-direction:column;align-items:center;gap:7px;
   pointer-events:none;z-index:4;opacity:0;transition:opacity .6s ease .5s}
 .fz3-layer[data-phase="dock"] .fz3-wave{opacity:1}
@@ -1138,27 +1155,38 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         if (phase === 'boot') return undefined
         let alive = true
         let timer = null
+        /* 所有到点动作都登记句柄，切状态或卸载时一并清掉 */
+        const pending = new Set()
+        const after = (fn, ms) => {
+          const id = setTimeout(() => { pending.delete(id); if (alive) fn() }, ms)
+          pending.add(id)
+        }
         const idleLike = mood !== 'working' && mood !== 'thinking'
-        /* 思考 / 执行中不眨眼：只保留眼睑半闭的思考态 */
-        if (!idleLike) return () => { alive = false }
+        /* 思考 / 执行中不眨眼：只保留眼睑半闭的思考态。
+           切进来的瞬间可能正眨到一半（眼睑收起、300ms 后才弹回），
+           这里立刻收尾回睁眼，否则 data-lid 会停在 blink 上，思考态就看不见眼睑。 */
+        if (!idleLike) {
+          setBlink('0')
+          setGlance('')
+          return undefined
+        }
         const schedule = () => {
-          const wait = idleLike ? 3400 + Math.random() * 5200 : 9000 + Math.random() * 7000
+          const wait = 3400 + Math.random() * 5200
           timer = setTimeout(() => {
             if (!alive) return
             setBlink('1')
             if (typeof window !== 'undefined') window.__fz3Blinks = (window.__fz3Blinks || 0) + 1
-            setTimeout(() => { if (alive) setBlink('0') }, BLINK_MS)
+            after(() => setBlink('0'), BLINK_MS)
             if (Math.random() < 0.24) {
-              setTimeout(() => {
-                if (!alive) return
+              after(() => {
                 setBlink('1')
-                setTimeout(() => { if (alive) setBlink('0') }, BLINK_MS - 40)
+                after(() => setBlink('0'), BLINK_MS - 40)
               }, 470)
             }
-            if (idleLike && Math.random() < 0.45) {
+            if (Math.random() < 0.45) {
               const dir = Math.random() < 0.5 ? 'l' : 'r'
-              setTimeout(() => { if (alive) setGlance(dir) }, 520)
-              setTimeout(() => { if (alive) setGlance('') }, 1240)
+              after(() => setGlance(dir), 520)
+              after(() => setGlance(''), 1240)
             }
             schedule()
           }, wait)
@@ -1167,12 +1195,16 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         return () => {
           alive = false
           clearTimeout(timer)
+          pending.forEach(clearTimeout)
+          pending.clear()
+          setBlink('0')
+          setGlance('')
         }
       }, [phase, mood])
 
       return h(
         'div',
-        { className: 'fz3-eye', 'data-blink': blink, 'data-glance': glance || undefined, 'data-glitch': glitch ? '1' : undefined, 'data-lid': phase === 'boot' ? undefined : (blink === '1' ? 'blink' : (mood === 'thinking' || mood === 'working' ? 'think' : (mood === 'done' ? 'soft' : undefined))) },
+        { className: 'fz3-eye', 'data-blink': blink, 'data-glance': glance || undefined, 'data-glitch': glitch ? '1' : undefined, 'data-lid': phase === 'boot' ? undefined : (mood === 'thinking' || mood === 'working' ? 'think' : (blink === '1' ? 'blink' : (mood === 'done' ? 'soft' : undefined))) },
         h('span', { className: 'fz3-eye-halo', 'aria-hidden': 'true' }),
         h('span', { className: 'fz3-eye-ring', 'aria-hidden': 'true' }),
         h('div', {
@@ -1455,6 +1487,18 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         h('b', null, 'FAIRY'),
         h('i', null, 'Ⅲ · H.D.D'),
       )
+    }
+
+    /* 新建对话页 hero 左侧的官方鱼标：插槽 conversation.hero.brand.mark 会带 size 与 className，
+       这里整只换成 Fairy 眼徽（不接收 className，避免继承官方鱼的 hover 动画）。 */
+    function HeroMark(props) {
+      const size = props && typeof props.size === 'number' && props.size > 0 ? props.size : 34
+      return h('span', {
+        className: 'fz3-hero-mark',
+        'aria-hidden': 'true',
+        style: { width: size + 'px', height: size + 'px' },
+        dangerouslySetInnerHTML: { __html: FAIRY_EYE_SVG },
+      })
     }
 
     function Waveform({ on }) {
@@ -1848,6 +1892,27 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
           tries += 1
           try { if (run() || tries > 14) clearInterval(timer) } catch (e) { clearInterval(timer) }
         }, 500)
+        return () => clearInterval(timer)
+      }, [])
+      useEffect(() => {
+        /* hero 的标题与「预览版」徽章没有插槽，只能改写 DOM 文本：按界面语言换成
+           空洞深潜系统 / HOLLOW DEEP DIVE SYSTEM 与 H.D.D 徽章。
+           官方组件只在悬停等状态变化时重渲染，React 不会把这段文字改回去；
+           会话切换会重挂载 hero，所以用一个低频定时器兜底重刷。 */
+        if (typeof document === 'undefined') return undefined
+        const apply = () => {
+          const group = document.querySelector('[class*="_headline"] [class*="_titleGroup"]')
+          if (!group) return
+          const headline = group.querySelector('span')
+          const badge = group.querySelector('[class*="_previewBadge"]')
+          const zh = CJK_RE.test((headline && headline.textContent) || '')
+            || CJK_RE.test((badge && badge.textContent) || '')
+          const copy = zh ? HERO_COPY.zh : HERO_COPY.en
+          if (headline && headline.textContent !== copy.headline) headline.textContent = copy.headline
+          if (badge && badge.textContent !== copy.badge) badge.textContent = copy.badge
+        }
+        apply()
+        const timer = setInterval(() => { try { apply() } catch (e) {} }, 900)
         return () => clearInterval(timer)
       }, [])
       useEffect(() => {
@@ -2302,6 +2367,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opac
         }
 
         mount('sidebar.brand.mark', { id: 'fairy-zzz-brandmark', priority: 100 }, BrandMark)
+        mount('conversation.hero.brand.mark', { id: 'fairy-zzz-hero-mark', priority: 100 }, HeroMark)
         mount('sidebar.brand.name', { id: 'fairy-zzz-brandname', priority: 100 }, BrandName)
         mount('shell.overlay', { id: 'fairy-zzz-skin', order: 24 }, FairySkin)
         mount('shell.overlay', { id: 'fairy-zzz-atmos', order: 12 }, Atmos)

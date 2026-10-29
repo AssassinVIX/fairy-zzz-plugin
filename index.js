@@ -549,7 +549,17 @@ export function apply(ctx) {
       ctx.on('agent/status', (payload) => { moodSeen.agent++; markRunning(payload?.status === 'running') })
       // 插件中途重载时会错过 running=true 的边沿事件，用流式帧把状态补回来
       ctx.on('agent/assistant-stream', () => { moodSeen.stream++; markRunning(true) })
-      ctx.on('session/event', () => { moodSeen.session++; markRunning(true) })
+      ctx.on('session/event', (first, second) => {
+        moodSeen.session++
+        /* 只有真正开始跑步骤的事件才算「在思考」。新建会话会落 agent-preset/selected
+           之类的记账事件，以前这里一律 markRunning(true)，于是新建对话时眼睛会一直停在
+           思考动画上。宿主不同版本可能按 (session, event) 或 { session, event } 派发，
+           两种形状都取。 */
+        const payload = second && typeof second === 'object'
+          ? second
+          : (first && typeof first === 'object' && first.event ? first.event : first)
+        if (payload && payload.type === 'step/start') markRunning(true)
+      })
     }
   } catch {}
 
