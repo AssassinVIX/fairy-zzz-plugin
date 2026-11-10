@@ -4,7 +4,7 @@
 
 把 DeepSeek Harness 的 Web 界面换成《绝区零》Fairy 的 H.D.D 终端：满屏开机动画 → 居中问好 → 收成会话区左侧的常驻眼徽，并可用本地 GPT-SoVITS 的 Fairy 音色把回复念出来。
 
-![开机动画](screenshots/01-boot.png)
+![开机动画](screenshots/01-boot.gif)
 ![居中问好](screenshots/02-greet.png)
 
 | 眼徽状态 | 设置面板 |
@@ -203,7 +203,7 @@ A **Fairy Ⅲ · Zenless Zone Zero H.D.D skin** for DeepSeek Harness.
 
 It turns the DSH web interface into Fairy's H.D.D terminal: a full-screen boot animation, then a centered greeting, then the emblem tucks itself into a permanent eye badge at the left edge of the conversation area — and replies can be read aloud in a local GPT-SoVITS Fairy voice.
 
-![Boot animation](screenshots/01-boot.png)
+![Boot animation](screenshots/01-boot.gif)
 ![Centered greeting](screenshots/02-greet.png)
 
 | Eye badge states | Settings panel |
