@@ -1,9 +1,10 @@
-window.__ModuleLoader__.load({
+﻿window.__ModuleLoader__.load({
   id: 'dsh-fairy-zzz',
   factory(require) {
     const React = require('react')
+    const { createPortal } = require('react-dom')
     const h = React.createElement
-    const { useCallback, useEffect, useLayoutEffect, useRef, useState } = React
+    const { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } = React
 
     const NS = 'fairy-zzz'
     const PKG = 'dsh-fairy-zzz'
@@ -12,6 +13,14 @@ window.__ModuleLoader__.load({
     const DRAG_KEY = 'fairy.zzz.drag'
     const POS_KEY = 'fairy.zzz.dock-pos'
     const EYE_KEY = 'fairy.zzz.eye-hidden'
+    const MOBILE_MEDIA = '(max-width: 767px), (max-width: 1023px) and (hover: none) and (pointer: coarse)'
+    const mobileMedia = window.matchMedia(MOBILE_MEDIA)
+    const subscribeMobile = listener => {
+    mobileMedia.addEventListener('change', listener)
+    return () => mobileMedia.removeEventListener('change', listener)
+    }
+    const isMobile = () => mobileMedia.matches
+    const useMobile = () => useSyncExternalStore(subscribeMobile, isMobile)
     const THEME_KEY = 'fairy.zzz.theme-mode'
     const greetSlot = () => {
       const hh = new Date().getHours()
@@ -342,22 +351,22 @@ window.__ModuleLoader__.load({
     /* ------------------------------------------------------------------ *
      * ———————————— */
     const baseTokens = {
-      '--dsw-alias-bg-base': 'rgba(8,10,18,0.88)',
-      '--dsw-alias-bg-layer-1': 'rgba(11,14,24,0.92)',
-      '--dsw-alias-bg-layer-2': 'rgba(15,19,32,0.95)',
-      '--dsw-alias-bg-overlay': 'rgba(4,5,12,0.98)',
-      '--dsw-alias-border-l1': 'rgba(120,110,255,0.22)',
-      '--dsw-alias-border-l2': 'rgba(58,68,140,0.32)',
+      '--dsw-alias-bg-base': '#0b0c0f',
+      '--dsw-alias-bg-layer-1': 'rgba(19,20,24,0.96)',
+      '--dsw-alias-bg-layer-2': 'rgba(25,26,31,0.98)',
+      '--dsw-alias-bg-overlay': 'rgba(8,9,12,0.98)',
+      '--dsw-alias-border-l1': 'rgba(135,138,150,0.18)',
+      '--dsw-alias-border-l2': 'rgba(135,138,150,0.30)',
       '--dsw-alias-brand-primary': '#3f6bff',
-      '--dsw-alias-label-primary': '#eef0fa',
-      '--dsw-alias-label-secondary': '#8b93b8',
+      '--dsw-alias-label-primary': '#eef0f3',
+      '--dsw-alias-label-secondary': '#9d9faa',
       '--dsw-alias-state-error-primary': '#ff5d7a',
-      '--dsw-alias-state-idle-primary': '#7078ac',
+      '--dsw-alias-state-idle-primary': '#777b86',
       '--dsw-alias-state-success-primary': '#3ef0b0',
       '--dsw-alias-state-warn-primary': '#ffc93c',
-      '--dsw-specific-sidebar-fill': 'rgba(9,11,20,0.9)',
-      '--dsw-specific-bubble': 'rgba(22,26,42,0.92)',
-      '--dsw-alias-markdown-code-block': 'rgba(8,9,20,0.94)',
+      '--dsw-specific-sidebar-fill': '#0b0b0e',
+      '--dsw-specific-bubble': '#17171b',
+      '--dsw-alias-markdown-code-block': '#0d0e11',
     }
     /* 浅色面：背景压在 #eef3fc 上，正文与次要文字各降一档对比，状态色保持可辨识 */
     const lightTokens = {
@@ -1061,6 +1070,279 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
   background:linear-gradient(90deg,rgba(110,90,255,.85),rgba(150,120,255,.55))}
 .fz3-wave-slider-2 b{width:34%;background:linear-gradient(90deg,rgba(70,120,255,.8),rgba(120,150,255,.45))}
 .fz3-boot-top,.fz3-boot-foot,.fz3-boot-checks,.fz3-boot-ver,.fz3-boot-corner,.fz3-corner,.fz3-tag{display:none!important}
+
+/* The native sidebar owns grouping, selection and expansion; these are decoration only. */
+/* Lists own scrolling; revealing a row must not scroll the outer shell sideways. */
+html[data-fz3-theme="dark"] [class*="_frame"]:has(> [data-shell-overlay]),
+html[data-fz3-theme="dark"] [class*="_frame"] > [class*="_sidebarCol"]{overflow:clip}
+html[data-fz3-theme="dark"] :is([data-sidebar-group],[data-sidebar-pinned]){
+  box-sizing:border-box;margin:6px 0 10px;padding:4px;border:2px solid #363638;border-radius:14px;background:#101013;
+}
+html[data-fz3-theme="dark"] [data-row-key^="workspace:"] > [class*="_slot"]{
+  box-sizing:border-box;width:26px;height:26px;border:2px solid currentColor;border-radius:50%;
+  color:#84858b;background:#ffffff05;
+}
+html[data-fz3-theme="dark"] [data-row-key^="workspace:"] > [class*="_slot"] > svg{display:none}
+html[data-fz3-theme="dark"] [data-row-key^="workspace:"] > [class*="_slot"]::before{
+  content:"";width:3px;height:3px;border-radius:50%;background:currentColor;box-shadow:-5px 0 currentColor,5px 0 currentColor;
+}
+html[data-fz3-theme="dark"] [data-row-key^="workspace:"][aria-expanded="true"] > [class*="_slot"]{
+  color:#8582df;background:#635cc22e;box-shadow:0 0 9px #6862ce55,inset 0 0 8px #6862ce22;
+}
+html[data-fz3-theme="dark"] [data-row-key][role="treeitem"][aria-selected="true"]{
+  --dsh-row-surface:#f7d838;--dsw-alias-label-primary:#19170c;--dsw-alias-label-secondary:#50430d;--dsw-alias-label-tertiary:#62501a;
+  z-index:1;padding-inline-end:28px;color:#19170c;border-radius:9px;background:linear-gradient(100deg,#ffb52e 0%,#f5dc32 55%,#d4eb42 100%);
+  box-shadow:inset 0 0 0 1px #fff3a933,0 0 7px #e8d63622;
+}
+html[data-fz3-theme="dark"] [data-row-key][aria-selected="true"] [data-session-title]{color:#19170c;font-weight:700}
+html[data-fz3-theme="dark"] [data-row-key][aria-selected="true"] [data-harness-id]{filter:brightness(0)}
+html[data-fz3-theme="dark"] [data-row-key][aria-selected="true"] [class*="_rowActions"]{inset-inline-end:28px;color:#19170c;background:transparent}
+/* Keep the native drop-after pseudo-element free while dragging. */
+html[data-fz3-theme="dark"] [data-row-key][role="treeitem"][aria-selected="true"]:not([class*="_dropAfter"])::after{
+  content:"";position:absolute;right:5px;top:-7px;width:19px;height:27px;z-index:2;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 30'%3E%3Cpath d='M12 1a9 9 0 0 0-9 9c0 7 9 18 9 18s9-11 9-18a9 9 0 0 0-9-9Z' fill='%23f54d45' stroke='%23b12c29' stroke-width='1'/%3E%3Ccircle cx='12' cy='10' r='4' fill='none' stroke='%23602321' stroke-width='2'/%3E%3Ccircle cx='12' cy='10' r='1.5' fill='%23602321'/%3E%3C/svg%3E") center/contain no-repeat;
+  filter:drop-shadow(0 2px 2px #0008);
+}
+html[data-fz3-theme="dark"] [data-row-key][aria-selected="true"]:not([class*="_dropAfter"]):has([class*="_rowActions"]:hover)::after{opacity:.3}
+
+/* Static, low-contrast diagonal fibers; keep the sidebar and reading surfaces neutral. */
+html[data-fz3-theme="dark"],html[data-fz3-theme="dark"] body{background:#0b0b0e!important}
+html[data-fz3-theme="dark"] body::before,html[data-fz3-theme="dark"] body::after{content:none;animation:none}
+html[data-fz3-theme="dark"] .fz3-atmos{display:none}
+html[data-fz3-theme="dark"] [data-conversation-content]{
+  background-color:#0b0d10;
+  background-image:radial-gradient(ellipse at 52% 35%,transparent 20%,rgba(0,0,0,.28) 100%),
+    repeating-linear-gradient(45deg,rgba(30,33,38,.55) 0 1px,rgba(3,4,6,.75) 1px 3px,rgba(25,28,33,.45) 3px 4px,rgba(5,6,8,.8) 4px 6px);
+}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-card]{
+  background:#17171b;border:2px solid #34343b;border-radius:22px;box-shadow:none;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-card]::before{content:none}
+html[data-fz3-theme="dark"] [data-content-phase="active"]:has(button[aria-label="Fast"]){box-sizing:border-box;padding-top:48px}
+
+/* Keep message rendering native; light tokens belong only to the Assistant bubble. */
+html[data-fz3-theme="dark"] [data-content-phase="active"] [class*="_viewArea"]:has([data-chat-flow]){
+  box-sizing:border-box;align-self:center;min-width:0;
+  width:min(calc(var(--dsh-chat-content-width,748px) + 16px),calc(100% - 2 * var(--dsh-composer-side-clearance,16px)));
+  margin:8px auto 12px;border:1px solid #26292f;border-radius:22px;background:#0c0e12;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] :is([data-chat-flow-kind="user"],[data-chat-flow-kind="steering"]) [class*="_userStack"] > [class*="_bubble"]{
+  --dsw-alias-label-primary:#fff;--dsw-alias-link:#fff;position:relative;background:#3853db;color:#fff;border-radius:18px;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] :is([data-chat-flow-kind="user"],[data-chat-flow-kind="steering"]) [class*="_userStack"] > [class*="_bubble"]::after{
+  content:"";position:absolute;right:-5px;top:16px;width:12px;height:12px;border-radius:2px;background:#3853db;transform:rotate(45deg);pointer-events:none;
+}
+html[data-fz3-theme="dark"] [data-chat-flow-kind^="assistant"]:not([data-chat-group-part="reasoning"])  :is([data-slot="conversation.chat.node"],[data-selection-answer]) > [class*="_root"]{
+  position:relative;min-width:0;padding-inline-start:44px;
+}
+html[data-fz3-theme="dark"] [data-chat-flow-kind^="assistant"]:not([data-chat-group-part="reasoning"])  :is([data-slot="conversation.chat.node"],[data-selection-answer]) > [class*="_root"]::before{
+  content:"";position:absolute;left:0;top:0;width:34px;height:34px;border-radius:11px;
+  background:url('/fairy-zzz/assets/icon-180.png') center/cover;box-shadow:0 0 0 1px #4156b744;pointer-events:none;
+}
+html[data-fz3-theme="dark"] [data-chat-flow-kind^="assistant"]:not([data-chat-group-part="reasoning"])  :is([data-slot="conversation.chat.node"],[data-selection-answer]) > [class*="_root"] > [class*="_body"]{
+  --dsw-alias-label-primary:#24262b;--dsw-alias-label-primary-dimmed:#353b44;--dsw-alias-label-primary-bluish:#173d82;
+  --dsw-alias-label-secondary:#545a63;--dsw-alias-label-tertiary:#707780;--dsw-alias-label-quaternary:#777e86;
+  --dsw-alias-bg-base:#f4f4f2;--dsw-alias-bg-layer-1:#fff;--dsw-alias-bg-layer-2:#ededeb;--dsw-alias-bg-layer-3:#e2e4e1;
+  --dsw-alias-border-l1:#d9dcd7;--dsw-alias-border-l2:#cfd4cd;--dsw-alias-border-l3:#bfc6be;
+  --dsw-alias-link:#2158b2;--dsw-alias-markdown-code-block:#e9eae6;--dsw-alias-markdown-code-block-banner:#e1e3dc;
+  --dsw-alias-markdown-inline-code:#e2e4df;--dsw-alias-markdown-citation:#e6e8e4;--dsw-alias-markdown-tag:#e6e8e4;
+  --dsw-alias-interactive-bg-hover:#0000000a;--dsw-alias-interactive-bg-hover-solid:#ddd;--dsw-alias-button-elevated-fill:#fafafa;
+  --dsw-alias-state-business-primary:#2158b2;--fz3-cyan:#2158b2;
+  --shiki-foreground:#24262b;--shiki-background:#e9eae6;--shiki-token-constant:#1c7ed6;--shiki-token-string:#2f9e44;
+  --shiki-token-comment:#868e96;--shiki-token-keyword:#d6336c;--shiki-token-parameter:#e8590c;--shiki-token-function:#6741d9;
+  --shiki-token-string-expression:#2b8a3e;--shiki-token-punctuation:#495057;--shiki-token-link:#1971c2;
+  position:relative;box-sizing:border-box;min-width:0;padding:14px 16px;border-radius:14px;
+  background:#f4f4f2;color:#24262b;color-scheme:light;box-shadow:0 1px 2px #0002;
+}
+html[data-fz3-theme="dark"] [data-chat-flow-kind^="assistant"]:not([data-chat-group-part="reasoning"])  :is([data-slot="conversation.chat.node"],[data-selection-answer]) > [class*="_root"] > [class*="_body"]::before{
+  content:"";position:absolute;left:-5px;top:16px;width:12px;height:12px;border-radius:2px;background:#f4f4f2;transform:rotate(45deg);pointer-events:none;
+}
+html[data-fz3-theme="dark"] [data-chat-flow-kind^="assistant"] .md-table-wide{
+  --dsh-table-spare:0px;--dsh-table-lead:0px;box-sizing:border-box;width:100%;max-width:100%;margin-left:0;padding-left:0;
+}
+
+/* Native question controls keep their behavior inside the blue reply frame. */
+html[data-fz3-theme="dark"] [data-question-key]{padding:6px var(--dsh-composer-side-clearance,16px) 10px}
+html[data-fz3-theme="dark"] [data-question-key] > section{
+  --dsw-alias-label-primary:#fff;--dsw-alias-label-secondary:#edf1ff;--dsw-alias-label-tertiary:#dce5ff;
+  display:flex;gap:8px;padding:8px;border:0;border-radius:22px;background:#2455e7;color:#fff;box-shadow:0 3px 14px #0004;
+}
+html[data-fz3-theme="dark"] [data-question-key] header{
+  min-height:44px;padding:12px 16px;border-radius:18px;background:#000;color:#fff;gap:12px;
+}
+html[data-fz3-theme="dark"] [data-question-key] h2{color:#fff;font-size:16px;line-height:1.5;font-weight:700}
+html[data-fz3-theme="dark"] [data-question-key] header h2{display:flex;align-items:flex-start;gap:8px}
+html[data-fz3-theme="dark"] [data-question-key] header h2::before{
+  content:"";flex:0 0 22px;width:22px;height:22px;margin-top:1px;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C6.5 2 2 5.8 2 10.5c0 2.5 1.3 4.8 3.4 6.3L4 22l5.5-3.2c.8.2 1.6.3 2.5.3 5.5 0 10-3.8 10-8.6S17.5 2 12 2Z' fill='%23fff'/%3E%3Ccircle cx='7.5' cy='10.5' r='1.2' fill='%23000'/%3E%3Ccircle cx='12' cy='10.5' r='1.2' fill='%23000'/%3E%3Ccircle cx='16.5' cy='10.5' r='1.2' fill='%23000'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+html[data-fz3-theme="dark"] [data-question-key] [data-question-scroll] > [class*="_detail"]{
+  margin:0 0 8px;padding:12px 16px;border-radius:16px;background:#000;color:#fff;
+}
+html[data-fz3-theme="dark"] [data-question-key] [class*="_options"]{gap:8px;margin:0;padding:0}
+html[data-fz3-theme="dark"] [data-question-key] :is(button[role="radio"],button[role="checkbox"],[class*="_customRow"],[class*="_customBlock"]){
+  --dsw-alias-label-primary:#111;--dsw-alias-label-primary-foreground:#fff;--dsw-alias-label-secondary:#444;--dsw-alias-label-tertiary:#555;
+  --dsw-alias-border-l4:#999;--dsw-alias-label-caption:#666;
+  min-height:44px;margin:0;padding:8px 12px;border:2px solid transparent;border-radius:24px;background:#fff;color:#111;color-scheme:light;
+}
+html[data-fz3-theme="dark"] [data-question-key] :is(button[role="radio"],button[role="checkbox"]):is(:hover,:focus-visible,[aria-checked="true"]),
+html[data-fz3-theme="dark"] [data-question-key] :is([class*="_customRow"],[class*="_customBlock"]):focus-within,
+html[data-fz3-theme="dark"] [data-question-key] [class*="_customRowActive"]{border-color:#111}
+html[data-fz3-theme="dark"] [data-question-key] button[role]:focus-visible{outline:2px solid #111;outline-offset:-5px}
+html[data-fz3-theme="dark"] [data-question-key] [class*="_optionLine"]{justify-content:center;text-align:center}
+html[data-fz3-theme="dark"] [data-question-key] [class*="_optionLabel"]{font-size:16px;font-weight:650}
+html[data-fz3-theme="dark"] [data-question-key] [class*="_description"]{color:#444}
+html[data-fz3-theme="dark"] [data-question-key] [class*="_badge"]{background:#e9edff;color:#111}
+html[data-fz3-theme="dark"] [data-question-key] [class*="_number"]{border-radius:50%;background:#eee;color:#444;font-weight:700}
+html[data-fz3-theme="dark"] [data-question-key] [aria-checked="true"] [class*="_number"]{background:#111;color:#fff}
+html[data-fz3-theme="dark"] [data-question-key] :is(textarea,[class*="_fieldMirror"]){font-size:16px;color:#111;caret-color:#111}
+html[data-fz3-theme="dark"] [data-question-key] textarea{outline:none;box-shadow:none!important}
+html[data-fz3-theme="dark"] [data-question-key] textarea::placeholder{color:#666;opacity:1}
+html[data-fz3-theme="dark"] [data-question-key] footer{gap:8px;margin:0;padding:0 4px 2px;border:0;background:transparent}
+html[data-fz3-theme="dark"] [data-question-key] footer button:not([class*="_iconButton"]){
+  min-height:36px;padding-inline:14px;border:1px solid #fff;border-radius:999px;background:#fff;color:#111;font-weight:650;
+}
+html[data-fz3-theme="dark"] [data-question-key] button:disabled{opacity:.5}
+.fz3-reply-row{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:0}
+.fz3-reply-bubble{
+  --fz3-quote-bg:#3f6bff12;--fz3-quote-accent:#4775d2;
+  position:relative;box-sizing:border-box;min-width:0;max-width:min(calc(var(--dsh-chat-content-width,748px) * .702),82%);
+  padding:12px 14px;border-radius:18px;background:var(--dsw-specific-bubble);color:var(--dsw-alias-label-primary);
+  font-size:var(--dsh-content-font-size,14px);line-height:calc(22px + var(--dsh-content-font-delta,0px));overflow-wrap:anywhere;
+}
+html[data-fz3-theme="dark"] .fz3-reply-bubble{--fz3-quote-bg:#ffffff16;--fz3-quote-accent:#a9d3ff;background:#3853db;color:#fff}
+html[data-fz3-theme="dark"] .fz3-reply-bubble::after{content:"";position:absolute;right:-5px;top:16px;width:12px;height:12px;border-radius:2px;background:#3853db;transform:rotate(45deg);pointer-events:none}
+.fz3-reply-pair + .fz3-reply-pair{margin-top:14px}
+.fz3-reply-quote{min-width:0;margin:0 0 9px;border-inline-start:3px solid var(--fz3-quote-accent);border-radius:4px 9px 9px 4px;background:var(--fz3-quote-bg)}
+.fz3-reply-quote summary{position:relative;list-style:none;cursor:pointer;padding:7px 28px 8px 10px;outline-offset:3px;border-radius:inherit}
+.fz3-reply-quote summary::-webkit-details-marker{display:none}
+.fz3-reply-quote summary:focus-visible,.fz3-reply-copy:focus-visible{outline:2px solid var(--fz3-quote-accent,#8dbbff)}
+.fz3-reply-label{display:block;font-weight:650;font-size:.9em;line-height:1.5;color:var(--fz3-quote-accent)}
+.fz3-reply-question{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;white-space:pre-wrap;font-size:.94em;line-height:1.5;opacity:.92}
+.fz3-reply-quote[open] .fz3-reply-question{display:block}
+.fz3-reply-chevron{position:absolute;right:8px;top:10px;opacity:.75}
+.fz3-reply-quote[open] .fz3-reply-chevron{transform:rotate(180deg)}
+.fz3-reply-answer{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.fz3-reply-actions{display:flex;align-items:center;gap:10px;color:var(--dsw-alias-label-secondary);font-size:var(--dsh-content-font-size-secondary,13px)}
+.fz3-reply-copy{display:grid;place-items:center;width:28px;height:28px;padding:4px;border:0;border-radius:6px;background:transparent;color:inherit;cursor:pointer}
+.fz3-reply-copy:hover{background:var(--dsw-alias-interactive-bg-hover)}
+@media(max-width:600px){.fz3-reply-bubble{max-width:90%;padding:10px 12px}.fz3-reply-copy{width:44px;height:44px}}
+
+/* The host owns the hero/active phase. Decoration stays behind its composer. */
+html[data-fz3-theme="dark"] [data-conversation-content][data-content-phase="hero"]{
+  position:relative;isolation:isolate;overflow:clip;
+}
+html[data-fz3-theme="dark"] [data-conversation-content][data-content-phase="hero"]::before,
+html[data-fz3-theme="dark"] [data-conversation-content][data-content-phase="hero"]::after{
+  content:"";position:absolute;left:var(--fz3-hdd-x,50%);aspect-ratio:1;transform:translate(-50%,-50%);
+  pointer-events:none;z-index:0;background-repeat:no-repeat;background-position:center;background-size:contain;
+}
+html[data-fz3-theme="dark"] [data-conversation-content][data-content-phase="hero"]::before{
+  top:calc(var(--fz3-hdd-y,50%) + var(--fz3-hdd-w,0px) * .08);
+  width:var(--fz3-hdd-w,0px);aspect-ratio:1;opacity:.42;
+  background-image:url('/fairy-zzz/assets/hdd-mesh.png');background-size:100% 100%;
+  mask-image:linear-gradient(to bottom,#000 24%,rgba(0,0,0,.7) 62%,transparent 100%);
+}
+html[data-fz3-theme="dark"] [data-conversation-content][data-content-phase="hero"]::after{
+  top:calc(var(--fz3-hdd-y,50%) - var(--fz3-hdd-w,0px) * .115);
+  width:calc(var(--fz3-hdd-w,0px) * .5);aspect-ratio:1.1;opacity:.9;
+  background-image:url('/fairy-zzz/assets/hdd-logo.png');background-size:100% 100%;filter:brightness(0) invert(1);
+}
+html[data-fz3-theme="dark"] [data-conversation-content][data-content-phase="hero"] > [data-conversation-scroll]{
+  position:relative;z-index:1;
+}
+html[data-fz3-theme="dark"] [data-content-phase="hero"] [data-fz3-hero-title]{
+  position:relative;transform:translateY(var(--fz3-hdd-title-shift,0px));
+}
+html[data-fz3-theme="dark"] [data-fz3-hero-title] [class*="_headline"]{visibility:hidden}
+.fz3-hdd-copy{display:none;position:absolute;top:0;left:50%;width:var(--fz3-hdd-w,100%);
+  transform:translateX(-50%);text-align:center;pointer-events:none}
+html[data-fz3-theme="dark"] [data-content-phase="hero"] .fz3-hdd-copy{display:block}
+.fz3-hdd-heading{position:relative;isolation:isolate}
+.fz3-hdd-english{position:absolute;z-index:0;left:50%;top:50%;transform:translate(-50%,-50%);
+  color:rgba(190,195,204,.14);font-family:"Arial Black",Arial,sans-serif;font-weight:900;font-style:italic;
+  font-size:clamp(26px,calc(var(--fz3-hdd-w,775px) * .071),80px);line-height:1;letter-spacing:.035em;white-space:nowrap}
+.fz3-hdd-chinese{position:relative;z-index:1;margin:0;color:#f2f4f6;font-family:"Microsoft YaHei UI","Microsoft YaHei",sans-serif;
+  font-size:clamp(26px,calc(var(--fz3-hdd-w,775px) * .055),64px);font-weight:900;font-style:italic;line-height:1.15;letter-spacing:.06em}
+.fz3-hdd-greeting{display:flex;align-items:center;justify-content:center;gap:.7em;margin:12px 0 0;color:#929ba8;
+  font-size:clamp(11px,calc(var(--fz3-hdd-w,775px) * .014),16px);line-height:1.6;letter-spacing:.08em;white-space:nowrap}
+.fz3-hdd-greeting::before{content:"";width:4px;height:4px;flex:none;border-radius:50%;background:#9ce8f4;box-shadow:0 0 6px #79d9ef80}
+
+/* Restyle the real controls; native disabled/pressed state and handlers stay authoritative.
+   SVG paths identify Send and rectangles identify Stop. */
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > rect){
+  box-sizing:border-box;display:grid;place-items:center;width:34px;height:34px;padding:0;
+  border:2px solid currentColor;border-radius:50%;corner-shape:round;color:#ef6a70;background:transparent;opacity:1;box-shadow:none;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > rect) svg{width:16px;height:16px}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > rect) rect{rx:1px}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > rect):hover:not(:disabled){background:#ef6a701a}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > rect):focus-visible{outline:2px solid #ef6a70;outline-offset:3px}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > rect):disabled{opacity:.45}
+@media(max-width:600px){
+  html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > rect){width:44px;height:44px}
+}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-tools] [data-toolbar-fixed="start"] button{
+  box-sizing:border-box;padding:0;border:2px solid #91a84e;border-radius:50%;corner-shape:round;color:#b6d568;background:transparent;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-tools] [data-toolbar-fixed="start"] button svg{width:16px;height:16px}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-tools] [data-toolbar-fixed="start"] button:hover:not(:disabled){background:#b6d56816}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-tools] [data-toolbar-fixed="start"] button:focus-visible{outline:2px solid #b6d568;outline-offset:3px}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-tools] button:has(> [class*="_triggerIcon"]){
+  box-sizing:border-box;gap:5px;padding:0 6px;border:2px solid #7968ae;border-radius:6px;corner-shape:round;
+  color:#afa0e4;background:#7968ae14;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-tools] button:has(> [class*="_triggerIcon"]) [class*="_chevron"]{color:inherit;opacity:1}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-tools] button:has(> [class*="_triggerIcon"]):hover:not(:disabled){background:#7968ae30}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-tools] button:has(> [class*="_triggerIcon"]):focus-visible{outline:2px solid #afa0e4;outline-offset:3px}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-tools] :is([data-toolbar-fixed="start"] button,button:has(> [class*="_triggerIcon"])):disabled{opacity:.45}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > path){
+  display:grid;place-items:center;width:34px;height:34px;padding:0;border:2px solid currentColor;border-radius:50%;corner-shape:round;
+  color:#e6d33c;background:transparent;opacity:1;box-shadow:none;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > path) svg{width:17px;height:17px}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > path):hover:not(:disabled){
+  background:rgba(230,211,60,.1);box-shadow:0 0 10px #e6d33c22;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > path):disabled{
+  color:#ef6a70;background:transparent;cursor:not-allowed;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > path):disabled svg{display:none}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > path):disabled::before{
+  content:"";width:17px;height:17px;background:currentColor;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 6l12 12M18 6L6 18' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > path):focus-visible{
+  outline:2px solid #e6d33c;outline-offset:3px;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"]{
+  position:fixed;top:64px;right:32px;z-index:5;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  box-sizing:border-box;width:145px;height:28px;padding:3px 6px;border:2px solid #8e8542;border-radius:999px;corner-shape:round;
+  color:#a99c49;background:#121419;font-family:Arial,sans-serif;font-size:12px;font-weight:800;line-height:18px;letter-spacing:.09em;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"]::before{content:"H.D.D"}
+html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"] svg{flex:none;width:13px;height:13px}
+html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"]::after{
+  content:"OFF";box-sizing:border-box;width:49px;height:17px;padding-left:6px;border-radius:999px;color:#b5aa61;
+  background:radial-gradient(circle at calc(100% - 7px) 50%,#b5aa61 0 4px,transparent 4.5px),#e6d33c18;
+  line-height:17px;text-align:left;letter-spacing:.04em;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"][aria-pressed="true"]{color:#e6d33c;border-color:#d0c048}
+html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"][aria-pressed="true"]::after{
+  content:"ON";color:#18180f;background:radial-gradient(circle at calc(100% - 7px) 50%,#18180f 0 4px,transparent 4.5px),#e6d33c;
+}
+html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"]:hover:not(:disabled){background:#25251a}
+html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"]:focus-visible{outline:2px solid #e6d33c;outline-offset:3px}
+html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"]:disabled{opacity:.45}
+@media(max-width:600px){
+  html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"]{top:60px;right:16px;height:32px}
+  html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:has(svg > path){width:44px;height:44px}
+}
+/* Native header/tab height varies by layout; keep the badge below that chrome. */
+@supports (top:anchor(--fz3-conversation top)) and (anchor-scope:--fz3-conversation){
+  html[data-fz3-theme="dark"] [data-conversation-content]{anchor-name:--fz3-conversation;anchor-scope:--fz3-conversation}
+  html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"]{top:calc(anchor(--fz3-conversation top) + 16px)}
+}
 .fz3-rim{position:fixed;left:-90px;top:-140px;width:560px;height:560px;pointer-events:none;
   background:radial-gradient(closest-side,rgba(126,92,255,.16),rgba(70,60,220,.05) 58%,transparent 76%);filter:blur(8px)}
 .fz3-bay{position:fixed;left:50%;bottom:-190px;width:980px;height:400px;transform:translateX(-50%);pointer-events:none;
@@ -1111,6 +1393,115 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
   :root{--fz3-eye-cy:38vh;--fz3-eye:clamp(96px,min(26vmin,30vh),180px)}
   .fz3-copy-title::after{display:none}
   .fz3-copy-title-zh{display:none}
+}
+/* Keep the native phone toolbar and scrolling; spend the width on the reply. */
+@media ${MOBILE_MEDIA}{
+  html[data-fz3-theme] [data-phase]:has(> [data-conversation-content]){overflow:clip}
+  html[data-fz3-theme] [data-conversation-content]{--dsh-composer-side-clearance:12px}
+  html[data-fz3-theme="dark"] [data-conversation-content][data-content-phase="active"]{background-color:#0e1014;background-image:none}
+  html[data-fz3-theme="dark"] [data-content-phase="active"]:has(button[aria-label="Fast"]){padding-top:0}
+  html[data-fz3-theme="dark"] [data-content-phase="active"] [class*="_viewArea"]:has([data-chat-flow]){
+    width:100%;margin:0;border:0;border-radius:0;background:transparent;
+  }
+  html[data-fz3-theme] [data-conversation-content] [class*="_scroll"]:has(> [data-chat-flow]){padding:12px}
+  html[data-fz3-theme="dark"] [data-chat-flow-kind^="assistant"]:not([data-chat-group-part="reasoning"]) :is([data-slot="conversation.chat.node"],[data-selection-answer]) > [class*="_root"]{padding-inline-start:0}
+  html[data-fz3-theme="dark"] [data-chat-flow-kind^="assistant"]:not([data-chat-group-part="reasoning"]) :is([data-slot="conversation.chat.node"],[data-selection-answer]) > [class*="_root"]::before{content:none}
+  html[data-fz3-theme="dark"] [data-chat-flow-kind^="assistant"]:not([data-chat-group-part="reasoning"]) :is([data-slot="conversation.chat.node"],[data-selection-answer]) > [class*="_root"] > [class*="_body"]{
+    padding:14px;border-radius:16px;font-size:max(15px,var(--dsh-content-font-size,14px));line-height:1.7;
+  }
+  html[data-fz3-theme="dark"] [data-chat-flow-kind^="assistant"]:not([data-chat-group-part="reasoning"]) :is([data-slot="conversation.chat.node"],[data-selection-answer]) > [class*="_root"] > [class*="_body"]::before{content:none}
+  html[data-fz3-theme="dark"] [data-conversation-content] :is([data-chat-flow-kind="user"],[data-chat-flow-kind="steering"]) [class*="_userStack"] > [class*="_bubble"],
+  .fz3-reply-bubble{max-width:92%;font-size:max(15px,var(--dsh-content-font-size,14px));line-height:1.65}
+  html[data-fz3-theme] [data-composer-card]{font-size:max(16px,var(--dsh-content-font-size,14px));gap:8px}
+  html[data-fz3-theme="dark"] [data-conversation-content] [data-composer-card]{border-width:1px;border-radius:20px}
+  html[data-fz3-theme] [data-composer-seat]{padding-bottom:env(safe-area-inset-bottom,0px)}
+  html[data-fz3-theme] [data-composer-card] [role="textbox"]{min-height:48px}
+  html[data-fz3-theme] [data-composer-tools] button{min-height:44px;min-width:44px;touch-action:manipulation}
+  html[data-fz3-theme] [data-slot="conversation.input.model"] button{min-height:44px;min-width:44px;touch-action:manipulation}
+  html[data-fz3-theme] [data-chat-flow-kind] button[class*="_action"]{min-height:44px;min-width:44px}
+  html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="start"] button,
+  html[data-fz3-theme="dark"] [data-conversation-content] [data-toolbar-fixed="end"] button:is(:has(svg > path),:has(svg > rect)){
+    width:44px;height:44px;flex:none;transform:none;
+  }
+  html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"]{
+    position:static;inset:auto;z-index:auto;flex:none;width:44px;height:44px;padding:0;gap:0;border-radius:12px;letter-spacing:0;
+  }
+  html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"]::before,
+  html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"]::after{display:none}
+  html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"] svg{width:18px;height:18px}
+  html[data-fz3-theme="dark"] [data-conversation-content] button[aria-label="Fast"][aria-pressed="true"]{background:#e6d33c22}
+  html[data-fz3-theme="dark"] [data-sidebar-group],html[data-fz3-theme="dark"] [data-sidebar-pinned]{border-width:1px;margin-block:6px;padding:4px}
+  html[data-fz3-theme] [data-row-key][role="treeitem"]{min-height:44px}
+  .fz3-reply-copy{width:44px;height:44px}
+}
+.fz3-set button:disabled{opacity:.45;cursor:default}
+
+/* UI typography and gold chrome adapted from AbiTssE6/dsh-theme-zzz 0.3.7
+   (7f3e264, MIT; see licenses/dsh-theme-zzz-MIT.txt). Fonts are local only. */
+html[data-fz3-theme]{
+  --fz3-ui-display:"方正综艺简体","FZZongYi-M05S","FZZYJW--GB1-0","Noto Sans SC","Source Han Sans SC","思源黑体",system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  --fz3-ui-text:var(--fz3-ui-display);
+  --fz3-chrome-selected:linear-gradient(135deg,#8c710100 0%,#8c71011a 40%,#8c71018c 100%),repeating-linear-gradient(100deg,#ffffff0e 0 9px,transparent 9px 19px),linear-gradient(135deg,#f4ca25 0%,#e8c01a 46%,#8c7101 100%);
+  --fz3-chrome-compass:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='none' stroke='%23101010' stroke-width='1.6'/%3E%3Cpath d='m10.8 5.2-1.6 4-4 1.6 1.6-4Z' fill='%23101010'/%3E%3C/svg%3E");
+}
+html[data-fz3-theme] body,
+html[data-fz3-theme] :is(button,select,input,textarea,[role="tab"],[role="menuitem"],[data-slot="sidebar"],.fz3-brandname,.fz3-reply-label){font-family:var(--fz3-ui-display)!important}
+html[data-fz3-theme] :is(button,select,[role="tab"],[role="menuitem"],[data-session-title],[class*="_navLabel"]){font-weight:800;font-synthesis-weight:none}
+html[data-fz3-theme] :is([role="dialog"],[role="menu"],[role="tooltip"],.fz3-set,.fz3-layer){font-family:var(--fz3-ui-text)!important}
+html[data-fz3-theme] :is([role="dialog"],[role="menu"],[role="tooltip"]) :is(p,li,label,input,textarea,[class*="_description"],[class*="_subtitle"]){font-family:var(--fz3-ui-text)!important}
+html[data-fz3-theme] :is([role="dialog"],[role="menu"],[data-question-key],[data-content-phase="hero"]) :is(h1,h2,h3,h4,[class*="_sectionTitle"],[class*="_navLabel"]),
+html[data-fz3-theme] :is(.fz3-hdd-chinese,.fz3-hdd-english,.fz3-hdd-greeting,.fz3-copy-title,.fz3-copy-title-zh){font-family:var(--fz3-ui-display)!important;font-synthesis-weight:none}
+/* Reading surfaces retain their previous font stacks, including user bubbles. */
+html[data-fz3-theme] [data-chat-flow-kind^="assistant"] :is([data-slot="conversation.chat.node"],[data-selection-answer]) > [class*="_root"] > [class*="_body"],
+html[data-fz3-theme] [data-composer-card] :is([role="textbox"],input,textarea){font-family:var(--dsw-font-family)!important;font-weight:400}
+html[data-fz3-theme] :is([data-chat-flow-kind="user"],[data-chat-flow-kind="steering"]) [class*="_userStack"] > [class*="_bubble"],
+html[data-fz3-theme] .fz3-reply-bubble{font-family:var(--fz3-font)!important;font-weight:400}
+/* The source theme keeps native glyph geometry: strengthen outlines, never fill them. */
+html[data-fz3-theme] [data-slot="sidebar"] :is([class*="_panelRow"],[class*="_newSession"],[class*="_footer"] button){font-family:var(--fz3-ui-display)!important;font-weight:800}
+html[data-fz3-theme="dark"] [data-slot="sidebar"] :is([class*="_panelRow"],[class*="_newSession"],[class*="_footer"] button){color:#f2f2f2}
+html[data-fz3-theme] :is([data-slot="sidebar"] [class*="_panelRow"],[data-slot="sidebar"] [class*="_newSession"],[data-slot="sidebar"] [class*="_footer"] button,[class*="_navCell"],[data-conversation-navigation-focus]) svg{stroke-linecap:round;stroke-linejoin:round}
+html[data-fz3-theme] [data-slot="sidebar"] :is([class*="_panelRow"],[class*="_newSession"],[class*="_footer"] button) > svg{width:18px;height:18px;flex-shrink:0}
+html[data-fz3-theme] :is([data-slot="sidebar"] [class*="_panelRow"],[data-slot="sidebar"] [class*="_newSession"],[data-slot="sidebar"] [class*="_footer"] button,[class*="_navCell"],[data-conversation-navigation-focus]) svg[fill="none"]{stroke-width:1.6px}
+/* Style the resident header and its real title/tabs; retain all native handlers. */
+html[data-fz3-theme="dark"] [data-conversation-navigation-focus]{background:#242424;border-bottom:1px solid #111;border-radius:0 0 10px 10px}
+html[data-fz3-theme] [data-conversation-navigation-focus] :is([class*="_crumb"],[class*="_title"]){font-family:var(--fz3-ui-display)!important;font-weight:800;font-synthesis-weight:none}
+html[data-fz3-theme="dark"] [data-conversation-navigation-focus] [class*="_crumbCurrent"],
+html[data-fz3-theme="dark"] [data-conversation-navigation-focus][class*="_headerBlank"] [data-conversation-header-leading]::after{
+  box-sizing:border-box;position:relative;min-width:100px;max-width:100%;padding:5px 12px 5px 32px;border-radius:8px;
+  color:#101010;background:var(--fz3-chrome-compass) 11px center/14px 14px no-repeat,var(--fz3-chrome-selected);
+  font-family:var(--fz3-ui-display);font-size:13px;font-weight:800;line-height:20px;font-synthesis-weight:none;
+}
+html[data-fz3-theme="dark"] [data-conversation-navigation-focus][class*="_headerBlank"] [data-conversation-header-leading]::after{content:"开始";display:block;white-space:nowrap}
+html[data-fz3-theme="dark"] [data-slot="conversation.header.shortcuts"] [data-active="true"]{background:var(--fz3-chrome-selected);border-color:transparent;color:#101010;border-radius:8px}
+html[data-fz3-theme="dark"] [data-slot="conversation.header.shortcuts"] [data-active="true"] :is(button,[class*="_title"]){color:#101010}
+html[data-fz3-theme="dark"] :is([data-conversation-tabs],[data-dockkit-strip]){background:#242424;border-radius:10px;gap:4px}
+html[data-fz3-theme="dark"] :is([data-conversation-tabs],[data-dockkit-strip]) [role="tab"]{border-radius:8px}
+html[data-fz3-theme="dark"] :is([data-conversation-tabs],[data-dockkit-strip]) [role="tab"][aria-selected="true"]{background:var(--fz3-chrome-selected);color:#101010;box-shadow:none}
+/* Reference marker: original source pixels clipped as a sprite; separate hollow rings. */
+html[data-fz3-theme] [data-session-status="ongoing"]:has(svg[data-state="ongoing"]){
+  --fz3-running-green:#4cdb26;position:relative;isolation:isolate;overflow:visible;
+  background:none;filter:drop-shadow(0 0 .7px #0b1b04);
+}
+html[data-fz3-theme] [data-session-status="ongoing"] svg[data-state="ongoing"]{
+  position:absolute;left:50%;top:50%;width:12px;height:12px;transform:translate(-50%,-50%);z-index:1;
+  background:url('/fairy-zzz/assets/running-mark-source.png') -18px -18.6px/52.2px 46.2px no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20fill%3D%22white%22%20d%3D%22M9%200h3v1h-3ZM8%201h5v1h-5ZM15%201h1v1h-1ZM7%202h10v1h-10ZM4%203h14v1h-14ZM3%204h16v1h-16ZM2%205h17v1h-17ZM1%206h19v1h-19ZM0%207h20v1h-20ZM0%208h20v1h-20ZM0%209h20v1h-20ZM0%2010h20v1h-20ZM0%2011h20v1h-20ZM0%2012h20v1h-20ZM0%2013h19v1h-19ZM1%2014h18v1h-18ZM1%2015h18v1h-18ZM2%2016h16v1h-16ZM3%2017h14v1h-14ZM4%2018h11v1h-11ZM6%2019h8v1h-8Z%22%2F%3E%3C%2Fsvg%3E") center/100% 100% no-repeat;
+}
+html[data-fz3-theme] [data-session-status="ongoing"] svg[data-state="ongoing"] :is(g,circle){animation:none;opacity:0}
+html[data-fz3-theme] [data-session-status="ongoing"]:has(svg[data-state="ongoing"])::before,
+html[data-fz3-theme] [data-session-status="ongoing"]:has(svg[data-state="ongoing"])::after{
+  content:"";position:absolute;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);box-sizing:border-box;
+  border:2px solid var(--fz3-running-green);border-radius:50%;corner-shape:round;pointer-events:none;
+  animation:fz3-reference-wave 1.8s linear infinite;
+}
+html[data-fz3-theme] [data-session-status="ongoing"]:has(svg[data-state="ongoing"])::after{animation-delay:-.9s}
+@keyframes fz3-reference-wave{0%{width:16px;height:16px;opacity:0}8%{opacity:1}90%{opacity:.95}100%{width:30px;height:30px;opacity:0}}
+@media(prefers-reduced-motion:reduce){
+  html[data-fz3-theme] [data-session-status="ongoing"]:has(svg[data-state="ongoing"])::before{animation:none;width:22px;height:22px;opacity:.95}
+  html[data-fz3-theme] [data-session-status="ongoing"]:has(svg[data-state="ongoing"])::after{animation:none;width:29px;height:29px;opacity:.8}
+@media(prefers-reduced-motion:reduce){
+  html[data-fz3-theme] [data-session-status="ongoing"]:has(svg[data-state="ongoing"])::before{animation:none;width:22px;height:22px;opacity:.95}
+  html[data-fz3-theme] [data-session-status="ongoing"]:has(svg[data-state="ongoing"])::after{animation:none;width:29px;height:29px;opacity:.8}
 }
 `
 
@@ -1259,6 +1650,7 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
 
     /* 设置页：语音开关、引擎状态、重播问候 / 重播开机 / 测试语音 / 停止 */
     function FairySettings() {
+      const mobile = useMobile()
       const voiceState = useVoice()
       const [engine, setEngine] = useState(null)
       const [engineBusy, setEngineBusy] = useState('')
@@ -1417,12 +1809,13 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
         h(
           'div',
           { className: 'fz3-set-row' },
-          h('div', null, h('div', { className: 'fz3-set-label' }, '自动朗读回复'), h('div', { className: 'fz3-set-desc' }, '助手回答完成后用 Fairy 的声音念出来')),
+          h('div', null, h('div', { className: 'fz3-set-label' }, '自动朗读回复'), h('div', { className: 'fz3-set-desc' }, mobile ? '手机端停用语音朗读' : '助手回答完成后用 Fairy 的声音念出来')),
           h('button', {
             type: 'button',
             className: 'fz3-set-switch',
-            'data-on': voiceState.enabled ? '1' : '0',
-            'aria-pressed': !!voiceState.enabled,
+            'data-on': !mobile && voiceState.enabled ? '1' : '0',
+            'aria-pressed': !mobile && !!voiceState.enabled,
+            disabled: mobile,
             onClick: () => setVoice(!voiceState.enabled),
           }),
         ),
@@ -1436,7 +1829,9 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
             h(
               'div',
               { className: 'fz3-set-desc' },
-              dragPref
+              mobile
+                ? '手机端停用眼标，位置沿用电脑端的记忆'
+                : dragPref
                 ? '已开启：按住会话区左缘的眼标，拖到屏幕任意位置，位置会被记住'
                 : '已锁定：眼标固定在会话区左缘中部',
             ),
@@ -1444,8 +1839,9 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
           h('button', {
             type: 'button',
             className: 'fz3-set-switch',
-            'data-on': dragPref ? '1' : '0',
-            'aria-pressed': !!dragPref,
+            'data-on': !mobile && dragPref ? '1' : '0',
+            'aria-pressed': !mobile && !!dragPref,
+            disabled: mobile,
             onClick: toggleDrag,
           }),
         ),
@@ -1459,7 +1855,9 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
             h(
               'div',
               { className: 'fz3-set-desc' },
-              eyeHidden
+              mobile
+                ? '手机端自动停用眼徽、开机动画和星空氛围层，电脑端沿用已保存的设置'
+                : eyeHidden
                 ? '已隐藏：眼徽和用量气泡都不再出现，随时能在这里重新打开'
                 : '停在会话区左缘，可以拖着走，也可以随时隐藏',
             ),
@@ -1467,8 +1865,9 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
           h('button', {
             type: 'button',
             className: 'fz3-set-switch',
-            'data-on': eyeHidden ? '0' : '1',
-            'aria-pressed': !eyeHidden,
+            'data-on': mobile ? '0' : eyeHidden ? '0' : '1',
+            'aria-pressed': !mobile && !eyeHidden,
+            disabled: mobile,
             onClick: toggleEye,
           }),
         ),
@@ -1554,8 +1953,8 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
           'div',
           { className: 'fz3-set-actions' },
           h('button', { type: 'button', className: 'fz3-set-btn', onClick: playGreet }, '试听问候'),
-          h('button', { type: 'button', className: 'fz3-set-btn', onClick: replayBoot }, '重播开机动画'),
-          h('button', { type: 'button', className: 'fz3-set-btn is-ghost', onClick: resetDockPos, disabled: !hasCustomPos }, '眼标复位'),
+          h('button', { type: 'button', className: 'fz3-set-btn', onClick: replayBoot, disabled: mobile }, '重播开机动画'),
+          h('button', { type: 'button', className: 'fz3-set-btn is-ghost', onClick: resetDockPos, disabled: mobile || !hasCustomPos }, '眼标复位'),
           h('button', { type: 'button', className: 'fz3-set-btn', onClick: testVoice, disabled: busy }, '测试语音'),
           h('button', { type: 'button', className: 'fz3-set-btn is-ghost', onClick: stopSpeech, disabled: !busy }, '停止'),
         ),
@@ -1584,6 +1983,32 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
       )
     }
 
+    /* 分时问候横幅（取自 codexhost 重绘版）：由 HeroMark 以 portal 挂到原生标题旁 */
+    function HeroCopy() {
+      const [hour, setHour] = useState(() => new Date().getHours())
+      useEffect(() => {
+        const refresh = () => setHour(new Date().getHours())
+        const timer = setInterval(refresh, 60000)
+        window.addEventListener('focus', refresh)
+        document.addEventListener('visibilitychange', refresh)
+        return () => {
+          clearInterval(timer)
+          window.removeEventListener('focus', refresh)
+          document.removeEventListener('visibilitychange', refresh)
+        }
+      }, [])
+      const greeting = hour >= 5 && hour < 12 ? '早上好' : hour >= 12 && hour < 18 ? '中午好' : '晚上好'
+      return h('div', { className: 'fz3-hdd-copy', lang: 'zh-CN' },
+        h('div', { className: 'fz3-hdd-heading' },
+          h('span', { className: 'fz3-hdd-english', lang: 'en', 'aria-hidden': 'true' }, 'HOLLOW DEEP DIVE SYSTEM'),
+          h('h1', { className: 'fz3-hdd-chinese' }, '空洞深潜系统')),
+        h('p', { className: 'fz3-hdd-greeting' }, greeting + '，传奇绳匠【法厄同】'))
+    }
+
+    /* 新建对话页 hero 左侧的官方鱼标：插槽 conversation.hero.brand.mark 会带 size 与 className，
+       这里整只换成 Fairy 眼徽（不接收 className，避免继承官方鱼的 hover 动画）。
+       codexhost 版：以 portal 把 H.D.D 问候横幅挂到原生标题旁，随输入卡位置自适应；
+       DOM 找不到挂点（data-conversation-content / _headline / data-composer-seat）就静默退化为纯眼徽。 */
     /* 新建对话页 hero 左侧的官方鱼标：插槽 conversation.hero.brand.mark 会带 size 与 className，
        这里整只换成 Fairy 眼徽（不接收 className，避免继承官方鱼的 hover 动画）。 */
     function HeroMark(props) {
@@ -1594,6 +2019,64 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
         style: { width: size + 'px', height: size + 'px' },
         dangerouslySetInnerHTML: { __html: FAIRY_EYE_SVG },
       })
+    }
+
+    /* H.D.D 问候横幅（取自 codexhost 重绘版）：由 portal 挂到原生标题旁，随输入卡位置自适应；
+       DOM 找不到挂点（data-conversation-content / _headline / data-composer-seat）就不挂。 */
+    function HddBanner() {
+      const marker = useRef(null)
+      const [copyTarget, setCopyTarget] = useState(null)
+      useLayoutEffect(() => {
+        const content = marker.current?.closest('[data-conversation-content]')
+        const title = marker.current?.closest('[class*="_headline"]')?.parentElement?.parentElement
+        const seat = marker.current?.closest('[data-composer-seat]')
+        if (!content || !title || !seat) return
+        const properties = ['--fz3-hdd-x', '--fz3-hdd-y', '--fz3-hdd-w', '--fz3-hdd-title-shift']
+        const original = properties.map(key => [key, content.style.getPropertyValue(key)])
+        let shift = 0, frame = 0, observedCard = null
+        title.setAttribute('data-fz3-hero-title', '')
+        setCopyTarget(title)
+        const update = () => {
+          const card = content.querySelector('[data-composer-card]')
+          if (!card) return
+          if (card !== observedCard) {
+            if (observedCard) observer.unobserve(observedCard)
+            observer.observe(card); observedCard = card
+          }
+          const body = content.getBoundingClientRect(), box = card.getBoundingClientRect()
+          const dark = document.documentElement.dataset.fz3Theme === 'dark'
+          const titleTop = title.getBoundingClientRect().top - (dark ? shift : 0)
+          shift = dark ? box.bottom + Math.min(64, box.width * .06) - titleTop : 0
+          content.style.setProperty('--fz3-hdd-x', box.left + box.width / 2 - body.left + 'px')
+          content.style.setProperty('--fz3-hdd-y', box.top - body.top + 'px')
+          content.style.setProperty('--fz3-hdd-w', box.width + 'px')
+          content.style.setProperty('--fz3-hdd-title-shift', shift + 'px')
+        }
+        const schedule = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; update() }) }
+        const observer = new ResizeObserver(schedule)
+        observer.observe(content); observer.observe(seat)
+        window.addEventListener('resize', schedule)
+        /* 上游皮肤与 codexhost 皮肤的主题事件名不同（fz3:theme-pref / fz3:theme），两个都挂 */
+        window.addEventListener('fz3:theme', schedule)
+        window.addEventListener('fz3:theme-pref', schedule)
+        content.addEventListener('scroll', schedule, true)
+        update()
+        return () => {
+          observer.disconnect(); cancelAnimationFrame(frame)
+          window.removeEventListener('resize', schedule)
+          window.removeEventListener('fz3:theme', schedule)
+          window.removeEventListener('fz3:theme-pref', schedule)
+          content.removeEventListener('scroll', schedule, true)
+          title.removeAttribute('data-fz3-hero-title')
+          original.forEach(([key, value]) => value ? content.style.setProperty(key, value) : content.style.removeProperty(key))
+        }
+      }, [])
+      return h('span', {
+        ref: marker,
+        className: 'fz3-hero-mark-hdd',
+        'aria-hidden': 'true',
+        style: { display: 'none' },
+      }, copyTarget ? createPortal(h(HeroCopy), copyTarget) : null)
     }
 
     function Waveform({ on }) {
@@ -1774,6 +2257,8 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
     /* ------------------------------------------------------------------ *
      * 背景氛围层 */
     function Atmos() {
+      const mobile = useMobile()
+      if (mobile) return null
       return h(
         'div',
         { className: 'fz3-atmos', 'aria-hidden': 'true' },
@@ -1893,6 +2378,11 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
         rows.map(([k, v]) => h('div', { className: 'fz3-bubble-row', key: k }, h('span', { className: 'fz3-bubble-k' }, k), h('span', { className: 'fz3-bubble-v' }, h('b', null, v)))),
         detail.length ? h('div', { className: 'fz3-bubble-sub' }, detail.map((line, i) => h('div', { key: i }, line))) : null,
       )
+    }
+
+    function FairyOverlay(props) {
+      const mobile = useMobile()
+      return mobile ? null : h(FairySkin, props)
     }
 
     function FairySkin() {
@@ -2375,6 +2865,139 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
     }
 
     /* ------------------------------------------------------------------ *
+     * 回复 Agent 回执气泡（取自 codexhost 重绘版）
+     * 用户气泡里的内容若是 <send_user_message_question_reply>…</…> 包裹的
+     * [{questionItemId, question, answer}]，就换成可折叠的问答气泡，其余情况原样交还。
+     * ------------------------------------------------------------------ */
+    const QUESTION_REPLY_TAG = /^\s*<send_user_message_question_reply>\s*([\s\S]*?)\s*<\/send_user_message_question_reply>\s*$/
+
+    function questionReplyPairs(content) {
+      if (!Array.isArray(content) || !content.length) return null
+      if (content.some((part) => !part || part.type !== 'text' || typeof part.text !== 'string')) return null
+      const text = content.map((part) => part.text).join('')
+      const match = QUESTION_REPLY_TAG.exec(text)
+      if (!match) return null
+      let parsed
+      try {
+        parsed = JSON.parse(match[1])
+      } catch {
+        return null
+      }
+      if (!Array.isArray(parsed) || !parsed.length) return null
+      const ok = parsed.every(
+        (pair) =>
+          pair &&
+          typeof pair.questionItemId === 'string' &&
+          pair.questionItemId.trim() &&
+          typeof pair.question === 'string' &&
+          pair.question.trim() &&
+          typeof pair.answer === 'string',
+      )
+      return ok ? parsed : null
+    }
+
+    /* 复制走 Clipboard API，失败时退到 execCommand，避免非 HTTPS 环境里静默失效 */
+    function copyText(text) {
+      const fallback = () => {
+        try {
+          const area = document.createElement('textarea')
+          area.value = text
+          area.setAttribute('readonly', '')
+          area.style.position = 'fixed'
+          area.style.top = '-1000px'
+          document.body.appendChild(area)
+          area.select()
+          const ok = document.execCommand('copy')
+          document.body.removeChild(area)
+          return ok
+        } catch {
+          return false
+        }
+      }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text).then(
+            () => true,
+            () => fallback(),
+          )
+        }
+      } catch {}
+      return Promise.resolve(fallback())
+    }
+
+    function QuestionReplyBubble({ pairs }) {
+      const [copied, setCopied] = useState(false)
+      useEffect(() => {
+        if (!copied) return undefined
+        const timer = setTimeout(() => setCopied(false), 1500)
+        return () => clearTimeout(timer)
+      }, [copied])
+      const copy = () => {
+        const text = pairs.map((pair) => pair.question + '\n' + pair.answer).join('\n\n')
+        copyText(text).then((ok) => {
+          if (ok) setCopied(true)
+        })
+      }
+      return h(
+        'div',
+        { className: 'fz3-reply-row', 'data-fz3-question-reply': '' },
+        h(
+          'div',
+          { className: 'fz3-reply-bubble' },
+          pairs.map((pair, index) =>
+            h(
+              'div',
+              { className: 'fz3-reply-pair', key: pair.questionItemId || index },
+              h(
+                'details',
+                { className: 'fz3-reply-quote' },
+                h(
+                  'summary',
+                  { 'aria-label': '引用的问题，展开或收起' },
+                  h('span', { className: 'fz3-reply-label' }, '回复 Agent'),
+                  h('span', { className: 'fz3-reply-question' }, pair.question),
+                  h(
+                    'svg',
+                    { className: 'fz3-reply-chevron', viewBox: '0 0 16 16', width: 14, height: 14, 'aria-hidden': 'true' },
+                    h('path', {
+                      d: 'm4 6 4 4 4-4',
+                      fill: 'none',
+                      stroke: 'currentColor',
+                      strokeWidth: 1.6,
+                    }),
+                  ),
+                ),
+              ),
+              h('p', { className: 'fz3-reply-answer' }, pair.answer),
+            ),
+          ),
+        ),
+        h(
+          'div',
+          { className: 'fz3-reply-actions' },
+          h(
+            'button',
+            { type: 'button', className: 'fz3-reply-copy', onClick: copy, 'data-copied': copied ? '1' : '0' },
+            copied ? '已复制' : '复制',
+          ),
+        ),
+      )
+    }
+
+    /* 接管 user / steering 气泡：命中问答回执就换成 QuestionReplyBubble，
+       否则把渲染权交还原生组件；原生可能在本次声明之后才注册，所以每次渲染都现找一次。 */
+    function makeQuestionReplyView(getEntries) {
+      let ReplyView = null
+      ReplyView = function QuestionReplyView(props) {
+        const pairs = questionReplyPairs(props && props.node && props.node.data && props.node.data.content)
+        if (pairs) return h(QuestionReplyBubble, { pairs })
+        const native = getEntries().find((entry) => entry.component !== ReplyView)
+        return native ? h(native.component, props) : null
+      }
+      return ReplyView
+    }
+
+    /* ------------------------------------------------------------------ *
      * 挂载
      * ------------------------------------------------------------------ */
     return {
@@ -2525,10 +3148,21 @@ html[data-fz3-theme="light"] [class*="_headline"] [class*="_titleGroup"]>span:fi
           })
         }
 
+        /* 回复 Agent 回执：接管用户气泡，priority 低于默认值，让原生先注册 */
+        for (const key of ['user', 'steering']) {
+          const view = makeQuestionReplyView(() =>
+            guard('entries:conversation.chat.node', () =>
+              ctx.slots.entries('conversation.chat.node').filter((entry) => entry.options && entry.options.key === key),
+            ) || [],
+          )
+          mount('conversation.chat.node', { key, priority: -10 }, view)
+        }
+
         mount('sidebar.brand.mark', { id: 'fairy-zzz-brandmark', priority: 100 }, BrandMark)
         mount('conversation.hero.brand.mark', { id: 'fairy-zzz-hero-mark', priority: 100 }, HeroMark)
+        mount('conversation.hero.banner', { id: 'fairy-zzz-hdd-banner', priority: 100 }, HddBanner)
         mount('sidebar.brand.name', { id: 'fairy-zzz-brandname', priority: 100 }, BrandName)
-        mount('shell.overlay', { id: 'fairy-zzz-skin', order: 24 }, FairySkin)
+        mount('shell.overlay', { id: 'fairy-zzz-skin', priority: 100 }, FairyOverlay)
         mount('shell.overlay', { id: 'fairy-zzz-atmos', order: 12 }, Atmos)
             mount('conversation.chat.assistant-actions', { id: 'fairy-zzz-voice', order: 20, label: '朗读' }, VoiceAction)
         mount('settings.section', { id: 'fairy-zzz-settings', order: 40, label: 'Fairy' }, FairySettings)
