@@ -1,0 +1,11 @@
+Fairy-DSH
+Copyright 2026 Chengzhibense.
+
+This repository contains original Fairy-DSH code and configuration released
+under the Apache License, Version 2.0. Third-party dependencies retain their
+own licenses; see THIRD_PARTY_NOTICES.md.
+
+Fairy, DSH, DeepSeek, Zenless Zone Zero, and related names or marks are not
+licensed by this NOTICE. See TRADEMARKS.md. Game text, official assets,
+private world data, user data, and personal corpora are intentionally not
+distributed by this repository.
